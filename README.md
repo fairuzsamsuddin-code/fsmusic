@@ -9,12 +9,18 @@ A clean, Apple Music–inspired, **ad-free** web music player in a single `index
   each one responds:
   | Source | What you get | Setup |
   |---|---|---|
-  | **YouTube** (via [Piped](https://github.com/TeamPiped/Piped) / [Invidious](https://invidious.io)) | Full songs, no ads, no IFrame player | Needs a working server. Public ones are often blocked by YouTube, so self-hosting is the reliable option |
+  | **YouTube, embedded player** (default) | Full songs through YouTube's official player. YouTube may show ads, and playback stops when the phone locks | None. Songs are matched to videos through Wikidata (free); an optional free [YouTube Data API key](https://developers.google.com/youtube/v3/getting-started) unlocks full YouTube search |
+  | **YouTube, your own server** ([Piped](https://github.com/TeamPiped/Piped) / [Invidious](https://invidious.io)) | Full songs, ad-free audio-only, plays with the screen locked | Self-hosted instance |
   | **[Internet Archive](https://archive.org/details/etree)** | Free, full-length live concerts and archival recordings | None |
   | **[Audius](https://audius.co)** | Free full tracks from independent artists | None |
   | **Previews** (iTunes Search + Deezer) | 30-second clips of almost any song, with official album art | None |
-- **Fallbacks.** The Listen Now songs play from YouTube when a server responds. Otherwise they
-  play as a preview or a live version, whichever you choose in Settings. When a YouTube server
+- **Full songs from YouTube.** Songs from the iTunes/Deezer catalog play in full through YouTube
+  whenever a matching video is found. If none is found, or the video can't be embedded, the
+  30-second preview plays instead.
+- **[SponsorBlock](https://sponsor.ajay.app).** Skips non-music intros, skits and outros in music
+  videos.
+- **Fallbacks.** If no YouTube video plays, the Listen Now songs play as a preview or a live
+  version, whichever you choose in Settings. When a YouTube server
   fails or rate-limits, the app tries the next one. If all of them fail, YouTube pauses for a few
   minutes so the other sources stay fast.
 - **Search** by song, artist or album. Results show a Top Result and one section per source,
@@ -28,6 +34,8 @@ A clean, Apple Music–inspired, **ad-free** web music player in a single `index
   comes from. It's a swipe-down sheet on mobile and a fixed side panel on desktop.
 - **Settings** (hamburger menu): source toggles, audio quality, AAC vs Opus, Autoplay, YouTube
   server choice, testing and discovery, custom servers, and a 6-band equalizer with presets.
+- **Home Screen app.** Includes a web app manifest and icons, so saving it to your phone's
+  Home Screen gives a proper app icon. Replace the PNGs in `icons/` to change it.
 - Lock-screen and media-key controls (Media Session API), keyboard shortcuts, playback that
   resumes after a reload, and light and dark themes.
 

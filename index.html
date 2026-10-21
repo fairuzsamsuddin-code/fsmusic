@@ -10,7 +10,11 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="FS Music — an ad-free, Apple Music–inspired web player powered by Piped & Invidious.">
 <title>FS Music</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ff5468'/%3E%3Cstop offset='1' stop-color='%23e3163a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath d='M26 44V20l18-4v22' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='21' cy='44' r='6' fill='white'/%3E%3Ccircle cx='39' cy='40' r='6' fill='white'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="FS Music">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script>
@@ -196,6 +200,11 @@
   }
   .np-art.paused { transform: scale(.84); box-shadow: 0 14px 34px -12px rgba(0,0,0,.5); }
   .np-art img { animation: fadeIn .5s ease both; }
+  #npArtImg { position: absolute; inset: 0; }
+  #ytWrap { position: absolute; inset: 0; z-index: 3; background: #000; }
+  #ytWrap iframe { width: 100%; height: 100%; border: 0; display: block; }
+  /* keep the embedded player alive (but off-screen) while the mobile sheet is closed */
+  #nowPlaying.yt-keep { visibility: visible; }
   .grabber { width: 40px; height: 5px; border-radius: 999px; background: rgba(255,255,255,.4); }
   .ctrl { display: grid; place-items: center; border-radius: 999px; color: #fff; transition: transform .2s cubic-bezier(.32,.72,0,1), background-color .2s; position: relative; }
   .ctrl:hover { background: rgba(255,255,255,.08); }
@@ -344,7 +353,7 @@
         </div>
 
         <div class="flex-1 flex items-center justify-center min-h-[240px] py-6">
-          <div id="npArt" class="np-art paused"></div>
+          <div id="npArt" class="np-art paused"><div id="npArtImg"></div><div id="ytWrap" hidden><div id="ytHost"></div></div></div>
         </div>
 
         <div>
@@ -493,9 +502,47 @@
       </div>
     </div>
 
+    <!-- YouTube playback -->
+    <div>
+      <div class="group-label">YouTube Playback</div>
+      <div class="group">
+        <div class="cell flex-col !items-stretch">
+          <div><div class="cell-title">Play YouTube Songs With</div><div class="cell-sub" id="ytModeHint"></div></div>
+          <div class="seg" data-setting="ytMode">
+            <button data-val="embed">Embedded Player</button><button data-val="server">My Server</button>
+          </div>
+        </div>
+        <div class="cell">
+          <div><div class="cell-title">Play Full Songs From YouTube</div><div class="cell-sub">Turns previews into full songs whenever a matching YouTube video is found</div></div>
+          <button class="switch" role="switch" aria-checked="true" data-toggle="upgrade" aria-label="Play full songs from YouTube"></button>
+        </div>
+        <div class="cell">
+          <div><div class="cell-title">Skip Non-Music Parts</div><div class="cell-sub">Uses <a class="text-accent" href="https://sponsor.ajay.app" target="_blank" rel="noopener">SponsorBlock</a> to skip intros, skits and outros in music videos</div></div>
+          <button class="switch" role="switch" aria-checked="true" data-toggle="sponsor" aria-label="Skip non-music parts"></button>
+        </div>
+        <div class="cell flex-col !items-stretch">
+          <div><div class="cell-title">YouTube API Key <span class="text-muted font-normal">(optional)</span></div>
+            <div class="cell-sub">Lets you search all of YouTube and finds more full songs. Free, about 100 searches a day.</div></div>
+          <form id="ytKeyForm" class="flex gap-2">
+            <input id="ytKey" class="field flex-1" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your API key" aria-label="YouTube API key">
+            <button class="h-[38px] px-3 rounded-[10px] bg-accent text-white text-[14px] font-semibold active:opacity-70" type="submit">Save</button>
+          </form>
+          <details class="text-[13px] text-muted">
+            <summary class="text-accent cursor-pointer select-none">How to get a free key (5 minutes)</summary>
+            <ol class="list-decimal pl-5 mt-2 space-y-1 leading-snug">
+              <li>Open <a class="text-accent" href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">YouTube Data API v3</a> in Google Cloud (sign in with any Google account, create a project if asked) and tap <b>Enable</b>.</li>
+              <li>Go to <a class="text-accent" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Credentials</a> → <b>Create credentials</b> → <b>API key</b>, and copy it.</li>
+              <li>Recommended: edit the key → <b>Application restrictions: Websites</b> → add <code id="ytKeySite"></code>, and restrict it to the YouTube Data API.</li>
+              <li>Paste it above and tap Save. No billing or card is needed.</li>
+            </ol>
+          </details>
+        </div>
+      </div>
+    </div>
+
     <!-- YouTube servers -->
     <div>
-      <div class="group-label">YouTube Servers</div>
+      <div class="group-label">YouTube Servers (Advanced)</div>
       <div class="group">
         <div class="cell flex-col !items-stretch">
           <div><div class="cell-title">Provider</div><div class="cell-sub">Public servers are often blocked by YouTube. For reliable full songs, add your own Piped or Invidious server below.</div></div>
@@ -714,7 +761,19 @@ const SRC = {
   ia: { label: 'Live Archive', section: 'Internet Archive', sub: 'Full-length live & archival recordings', badge: 'Archive', full: true },
   au: { label: 'Audius', section: 'Audius', sub: 'Full tracks from independent artists', badge: 'Audius', full: true }
 };
-const SRC_ORDER = ['yt', 'pv', 'ia', 'au'];
+let SRC_ORDER = ['yt', 'pv', 'ia', 'au'];
+/* Labels depend on how YouTube is played: with "Play full songs" on, the iTunes/Deezer catalog
+   is the main song list and each song plays in full from YouTube when a video is found */
+function applySrcLabels() {
+  const up = S.set.upgrade && S.set.sources.yt;
+  Object.assign(SRC.pv, up
+    ? { label: 'Songs', section: 'Songs', sub: 'Full songs from YouTube when available, otherwise 30-second previews', badge: '', full: true }
+    : { label: 'Previews', section: 'Previews', sub: '30-second clips · iTunes & Deezer', badge: 'Preview', full: false });
+  Object.assign(SRC.yt, S.set.ytMode === 'embed'
+    ? { label: 'YouTube', section: 'YouTube', sub: 'Videos from YouTube (embedded player)' }
+    : { label: 'YouTube', section: 'YouTube', sub: 'Full songs from your YouTube server' });
+  SRC_ORDER = up ? ['pv', 'yt', 'ia', 'au'] : ['yt', 'pv', 'ia', 'au'];
+}
 
 /* =====================================================================
    Settings & state
@@ -743,7 +802,8 @@ const EQ_PRESETS = {
 const DEFAULTS = {
   provider: 'auto', instance: 'auto', quality: 'high', format: 'auto', radio: true,
   eqOn: false, eqPreset: 'flat', eqGains: [0, 0, 0, 0, 0, 0], volume: 1, custom: [],
-  sources: { yt: true, ia: true, au: true, pv: true }, fallback: 'preview'
+  sources: { yt: true, ia: true, au: true, pv: true }, fallback: 'preview',
+  ytMode: 'embed', ytKey: '', upgrade: true, sponsor: true
 };
 
 /* Tracks from v1 stored a bare YouTube id; upgrade them to the multi-source shape */
@@ -770,11 +830,13 @@ const S = {
   discovered: (store.get('discovered', {}).list) || [],
   autoDiscovered: false, streamInst: null, seeking: false, ytDownUntil: 0,
   art: store.get('art', {}),
-  open: new Set(), sheet: null, view: 'home'
+  open: new Set(), sheet: null, view: 'home', mode: 'audio'
 };
 if (!Array.isArray(S.set.eqGains) || S.set.eqGains.length !== EQ_FREQS.length) S.set.eqGains = [...DEFAULTS.eqGains];
 if (!Array.isArray(S.set.custom)) S.set.custom = [];
-if (!SRC_ORDER.some(s => S.set.sources[s])) S.set.sources.pv = true;
+if (!['yt', 'pv', 'ia', 'au'].some(s => S.set.sources[s])) S.set.sources.pv = true;
+if (!('ytMode' in storedSet) && S.set.custom.length) S.set.ytMode = 'server';   // v2 users who added a server
+applySrcLabels();
 const enabledSources = () => SRC_ORDER.filter(s => S.set.sources[s]);
 
 const resolved = {};                                   // placeholder query -> YouTube track (persisted)
@@ -982,7 +1044,7 @@ function markFail(inst, e) {
   h.err = e && (e.status === 429 ? 'Rate limited' : e.timeout ? 'Timed out' : e.status ? `HTTP ${e.status}` : 'Unreachable');
   health[inst.url] = h;
 }
-const ytAvailable = () => S.set.sources.yt && Date.now() > S.ytDownUntil;
+const ytServerUp = () => S.set.sources.yt && S.set.ytMode === 'server' && Date.now() > S.ytDownUntil;
 
 async function api(kind, arg, opt = {}) {
   if (!navigator.onLine) throw new ApiError("You're offline. Check your connection.");
@@ -1047,6 +1109,92 @@ async function getStreamData(vid, exclude) {
   streamCache.set(vid, entry);
   if (streamCache.size > 40) streamCache.delete(streamCache.keys().next().value);
   return entry;
+}
+
+/* ---------- YouTube without a server: find video ids, play them in the embedded player ---------- */
+const decodeEntities = s => { const ta = document.createElement('textarea'); ta.innerHTML = String(s || ''); return ta.value; };
+const normKey = s => String(s || '').toLowerCase().replace(/^the\s+/, '').replace(/\(.*?\)|\[.*?\]/g, '').replace(/[^a-z0-9]/g, '');
+let quotaWarned = false;
+
+/* Optional: official YouTube Data API (free key, ~100 searches/day) */
+async function ytApiSearch(q) {
+  if (!S.set.ytKey) throw new ApiError('Add a free YouTube API key in Settings to search YouTube here.');
+  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=15&q=${enc(q)}&key=${enc(S.set.ytKey)}`;
+  let r;
+  try { r = await fetch(url); } catch { throw new ApiError("Couldn't reach YouTube."); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const reason = d.error && d.error.errors && d.error.errors[0] && d.error.errors[0].reason;
+    if (reason === 'quotaExceeded' || reason === 'dailyLimitExceeded') throw Object.assign(new ApiError('YouTube API daily limit reached — resets at midnight Pacific time.'), { quota: true });
+    if (r.status === 400 || r.status === 403) throw new ApiError('Your YouTube API key was rejected. Check it in Settings.');
+    throw new ApiError(`YouTube search failed (HTTP ${r.status}).`);
+  }
+  return (d.items || []).filter(i => i.id && i.id.videoId && i.snippet && i.snippet.liveBroadcastContent !== 'live')
+    .map(i => ({ ...ytTrack(i.id.videoId, decodeEntities(i.snippet.title), decodeEntities(i.snippet.channelTitle), 0) }));
+}
+
+/* Free, keyless: Wikidata stores official YouTube video ids (P1651) for many well-known songs */
+async function wikidataYT(artist, title) {
+  const clean = String(title).replace(/\(.*?\)|\[.*?\]/g, '').replace(/["\\]/g, '').trim();
+  if (!clean) return null;
+  const sparql = `SELECT ?vid ?al WHERE {
+    SERVICE wikibase:mwapi { bd:serviceParam wikibase:endpoint "www.wikidata.org"; wikibase:api "EntitySearch";
+      mwapi:search "${clean}"; mwapi:language "en". ?song wikibase:apiOutputItem mwapi:item. }
+    ?song wdt:P1651 ?vid; wdt:P175 ?a. ?a rdfs:label ?al. FILTER(LANG(?al) = "en") } LIMIT 40`;
+  const d = await fetchJSON(`https://query.wikidata.org/sparql?format=json&query=${enc(sparql)}`, 9000);
+  const want = normKey(artist);
+  for (const b of (d.results && d.results.bindings) || []) {
+    const al = normKey(b.al && b.al.value), vid = b.vid && b.vid.value;
+    if (al && vid && /^[\w-]{11}$/.test(vid) && (al.includes(want) || want.includes(al))) return vid;
+  }
+  return null;
+}
+
+const ytIds = store.get('ytids', {});        // "artist|title" -> { v: videoId or '', at }
+const ytKeyOf = t => normKey(t.artist) + '|' + normKey(t.title);
+function markYtBad(t) { ytIds[ytKeyOf(t)] = { v: '', at: Date.now() }; store.set('ytids', ytIds); }
+async function findYouTube(t) {
+  if (!S.set.sources.yt || !t || !t.title) return null;
+  const key = ytKeyOf(t), c = ytIds[key];
+  if (c && (c.v || Date.now() - c.at < 3 * 864e5)) return c.v || null;
+  let v = null;
+  try { v = await wikidataYT(t.artist, t.title); } catch (e) { console.warn('Wikidata lookup failed', e.message); }
+  if (!v && ytServerUp()) {
+    try { const b = bestMatch((await api('search', `${t.artist} ${t.title}`, { max: 3, quiet: true })).data, t, true); v = b && b.ref; } catch { }
+  }
+  if (!v && S.set.ytKey) {
+    try { const b = bestMatch(await ytApiSearch(`${t.artist} ${t.title}`), t, true); v = b && b.ref; }
+    catch (e) { if (e.quota && !quotaWarned) { quotaWarned = true; toast(e.message, 'error'); } if (e.quota) return null; }
+  }
+  ytIds[key] = { v: v || '', at: Date.now() };
+  store.set('ytids', ytIds);
+  return v;
+}
+
+/* SponsorBlock — skip non-music sections of music videos */
+const sbSegs = new Map();
+async function loadSegments(vid) {
+  if (!S.set.sponsor || !vid || sbSegs.has(vid)) return;
+  sbSegs.set(vid, []);
+  try {
+    const r = await fetch(`https://sponsor.ajay.app/api/skipSegments?videoID=${vid}&categories=${enc('["music_offtopic"]')}`);
+    if (r.ok) sbSegs.set(vid, (await r.json()).map(x => x.segment).filter(g => Array.isArray(g) && g[1] > g[0]));
+  } catch { }
+}
+const currentVid = () => S.current && (S.current.src === 'yt' ? S.current.ref : S.current.ytRef);
+let sbToastAt = 0;
+function checkSkip() {
+  if (!S.set.sponsor || S.seeking || S.loading) return;
+  const segs = sbSegs.get(currentVid());
+  if (!segs || !segs.length) return;
+  const t = P.time();
+  for (const [a, b] of segs) {
+    if (t >= a && t < b - 0.6) {
+      P.seek(b);
+      if (Date.now() - sbToastAt > 8000) { sbToastAt = Date.now(); toast('Skipped a non-music section', 'info'); }
+      return;
+    }
+  }
 }
 
 /* =====================================================================
@@ -1234,8 +1382,9 @@ const Previews = {
    ===================================================================== */
 const Sources = {
   yt: {
-    search: async q => (await api('search', q, { max: 4, timeout: 7000, quiet: true })).data,
-    related: async t => (await getStreamData(t.ref)).related
+    search: async q => S.set.ytMode === 'server' ? (await api('search', q, { max: 4, timeout: 7000, quiet: true })).data : ytApiSearch(q),
+    // without a server there is no "related videos" API, so stations come from Deezer artist radio
+    related: async t => ytServerUp() ? (await getStreamData(t.ref)).related : Previews.related(t)
   },
   ia: Archive,
   au: Audius,
@@ -1276,7 +1425,18 @@ async function resolveTrack(t) {
   const hit = resolved[t.query] || memResolved[t.query];
   if (hit) return { ...hit };
   const order = [];
-  if (ytAvailable()) order.push('yt');
+  if (S.set.sources.yt) {
+    try {
+      const vid = await findYouTube(t);
+      if (vid) {
+        const cov = S.art[t.query];
+        const track = { id: 'yt:' + vid, src: 'yt', ref: vid, title: t.title, artist: t.artist, duration: 0, ...(cov ? { cover: cov.art, coverLg: cov.artLg } : {}) };
+        resolved[t.query] = track; store.set('resolved', resolved);
+        updatePlaceholderArt(t.query, artInfo(track), track.id);
+        return { ...track };
+      }
+    } catch (e) { console.warn('YouTube lookup failed', e.message); }
+  }
   if (S.set.fallback === 'live' && S.set.sources.ia) order.push('ia');
   if (S.set.sources.pv) order.push('pv');
   if (S.set.fallback !== 'live' && S.set.sources.ia) order.push('ia');
@@ -1316,6 +1476,102 @@ async function prefetchArt() {
     await sleep(450);
   }
 }
+
+/* =====================================================================
+   Embedded YouTube player (official IFrame API) + a facade that drives
+   whichever engine is active: the <audio> element or the YouTube player
+   ===================================================================== */
+const YTE = {
+  player: null, readyP: null, state: -1, pending: null,
+  ready() {
+    if (this.readyP) return this.readyP;
+    this.readyP = new Promise((resolve, reject) => {
+      const fail = msg => { clearTimeout(timer); this.readyP = null; reject(new ApiError(msg)); };
+      const timer = setTimeout(() => fail("The YouTube player didn't load. Check your connection."), 15000);
+      const create = () => {
+        const vars = { playsinline: 1, rel: 0, iv_load_policy: 3, fs: 0, modestbranding: 1 };
+        if (location.origin && location.origin !== 'null') vars.origin = location.origin;
+        this.player = new YT.Player('ytHost', {
+          width: '100%', height: '100%', playerVars: vars,
+          events: {
+            onReady: () => { clearTimeout(timer); try { this.player.setVolume(Math.round(S.set.volume * 100)); } catch { } resolve(this.player); },
+            onStateChange: e => this.onState(e.data),
+            onError: e => this.onError(e.data),
+            onAutoplayBlocked: () => this.onBlocked()
+          }
+        });
+      };
+      if (window.YT && window.YT.Player) return create();
+      const prev = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => { if (prev) prev(); create(); };
+      const sc = document.createElement('script');
+      sc.src = 'https://www.youtube.com/iframe_api';
+      sc.onerror = () => fail("Couldn't load the YouTube player.");
+      document.head.appendChild(sc);
+    });
+    return this.readyP;
+  },
+  settle(kind, v) { const p = this.pending; if (!p) return; this.pending = null; clearTimeout(p.timer); p[kind](v); },
+  onState(st) {
+    this.state = st;
+    if (S.mode !== 'yt') return;
+    if (st === 1) { setBuffering(false); setPlayingUI(true); this.settle('resolve'); }
+    else if (st === 2) { setBuffering(false); setPlayingUI(false); }
+    else if (st === 3) setBuffering(true);
+    else if (st === 0) { setPlayingUI(false); if (!S.loading) next({ auto: true }); }
+  },
+  onError(code) {
+    const embed = code === 101 || code === 150 || code === 153;
+    const err = Object.assign(new Error(embed ? "This video can't be played outside YouTube" : code === 100 ? 'Video not found' : 'YouTube player error'), { code: embed || code === 100 ? 'EMBED' : 'YT' });
+    if (this.pending) return this.settle('reject', err);
+    if (S.mode === 'yt' && !S.loading) handlePlayError(err);
+  },
+  onBlocked() {
+    this.settle('resolve', 'blocked');
+    setBuffering(false); setPlayingUI(false);
+    openOverlay('np');
+    toast('Tap the video to start playing', 'info', { duration: 5000 });
+  },
+  async load(vid, at, autoplay) {
+    const pl = await this.ready();
+    return new Promise((resolve, reject) => {
+      this.settle('resolve');
+      const timer = setTimeout(() => {          // never started: usually a browser autoplay block (iOS)
+        if (this.state === 1) return this.settle('resolve');
+        this.onBlocked();
+      }, 9000);
+      this.pending = { resolve, reject, timer };
+      this.state = -1;
+      if (autoplay) pl.loadVideoById({ videoId: vid, startSeconds: at || 0 });
+      else { pl.cueVideoById({ videoId: vid, startSeconds: at || 0 }); this.settle('resolve'); }
+    });
+  },
+  stop() { if (this.player) try { this.player.pauseVideo(); } catch { } }
+};
+
+const P = {
+  yt: () => S.mode === 'yt' && !!YTE.player,
+  paused() { return this.yt() ? !(YTE.state === 1 || YTE.state === 3) : S.audio.paused; },
+  time() { if (this.yt()) { try { return YTE.player.getCurrentTime() || 0; } catch { return 0; } } return S.audio.currentTime || 0; },
+  dur() {
+    if (this.yt()) { try { return YTE.player.getDuration() || 0; } catch { return 0; } }
+    const d = S.audio.duration; return isFinite(d) && d > 0 ? d : 0;
+  },
+  seek(t) { if (this.yt()) { try { YTE.player.seekTo(t, true); } catch { } } else { try { S.audio.currentTime = t; } catch { } } },
+  play() { if (this.yt()) { try { YTE.player.playVideo(); } catch { } return Promise.resolve(); } return S.audio.play(); },
+  pause() { if (this.yt()) { try { YTE.player.pauseVideo(); } catch { } } else S.audio.pause(); },
+  volume(v) { S.audio.volume = v; if (YTE.player) try { YTE.player.setVolume(Math.round(v * 100)); } catch { } }
+};
+
+function setMode(m) {
+  if (S.mode === m && m === 'audio') return;
+  S.mode = m;
+  if (m === 'yt') { try { S.audio.pause(); } catch { } }
+  else YTE.stop();
+  $('#ytWrap').hidden = m !== 'yt';
+  $('#nowPlaying').classList.toggle('yt-keep', m === 'yt');
+}
+setInterval(() => { if (S.mode === 'yt' && S.playing) onTimeUpdate(); }, 400);
 
 /* =====================================================================
    Audio engine
@@ -1379,9 +1635,9 @@ function attachEQ() {
 /* Swap in a fresh <audio> element (needed to toggle CORS mode for the equalizer) */
 function rebuildAudio(keepPlaying) {
   const old = S.audio;
-  const wasPlaying = old && !old.paused && !S.silent;
+  const wasPlaying = old && !old.paused && !S.silent && S.mode === 'audio';
   const at = old ? old.currentTime : 0;
-  const url = old && !S.silent ? old.currentSrc : '';
+  const url = old && !S.silent && S.mode === 'audio' ? old.currentSrc : '';
   S.audio = makeAudio();
   if (S.set.eqOn && !attachEQ()) { S.set.eqOn = false; saveSettings(); refreshSettingsUI(); toast('Equalizer is not supported in this browser', 'error'); }
   if (old) {
@@ -1449,8 +1705,41 @@ function setSource(url, at, autoplay) {
 }
 
 async function loadAndPlay(t, token, opts = {}) {
-  if (t.src !== 'yt') return loadDirect(t, token, opts);
+  const vid = t.src === 'yt' ? t.ref : t.ytRef;
+  if (!vid) return loadDirect(t, token, opts);
+  if (t.src === 'yt' && ytServerUp()) {
+    try { return await loadViaServer(t, token, opts); }
+    catch (e) { if (token !== S.token) return; console.warn('Server playback failed, using the embedded player', e.message); }
+  }
+  try { return await loadEmbed(t, vid, token, opts); }
+  catch (e) {
+    if (token !== S.token || t.src !== 'pv') throw e;
+    if (e.code === 'EMBED') { markYtBad(t); toast('Full song not available here — playing the preview', 'info'); }
+    t.ytRef = null; renderNowPlaying();
+    return loadDirect(t, token, opts);
+  }
+}
+
+async function loadEmbed(t, vid, token, { at = 0, autoplay = true, source = 'user' } = {}) {
+  setMode('yt');
+  kickRadio(t, token, source);
+  loadSegments(vid);
+  await YTE.load(vid, at, autoplay);
+  if (token !== S.token) return;
+  S.streamInst = null;
+}
+
+function kickRadio(t, token, source) {
+  if (!S.set.radio) return;
+  S.radioLoading = !S.radio.length; renderQueue();
+  relatedFor(t).then(rel => { if (token === S.token) updateRadio(t, rel, source); })
+    .finally(() => { if (token === S.token) { S.radioLoading = false; renderQueue(); } });
+}
+
+async function loadViaServer(t, token, opts = {}) {
   const { at = 0, autoplay = true, source = 'user' } = opts;
+  setMode('audio');
+  loadSegments(t.ref);
   const exclude = new Set();
   for (let round = 0; round < 3; round++) {
     let d;
@@ -1478,17 +1767,16 @@ async function loadAndPlay(t, token, opts = {}) {
 async function loadDirect(t, token, { at = 0, autoplay = true, source = 'user' } = {}) {
   const url = await Sources[t.src].streamUrl(t);
   if (token !== S.token) return;
-  if (S.set.radio) {
-    S.radioLoading = !S.radio.length; renderQueue();
-    relatedFor(t).then(rel => { if (token === S.token) updateRadio(t, rel, source); })
-      .finally(() => { if (token === S.token) { S.radioLoading = false; renderQueue(); } });
-  }
+  setMode('audio');
+  kickRadio(t, token, source);
   await setSource(url, at, autoplay);
   S.streamInst = null;
 }
 
 async function startTrack(track, { source = 'user', at = 0, autoplay = true } = {}) {
   const token = ++S.token;
+  if (!track.src && track.ytRef === null) delete track.ytRef;
+  if (S.mode === 'yt') YTE.stop(); else if (!S.silent) { try { S.audio.pause(); } catch { } }
   S.current = track; S.source = source; S.prefetched = false; S.needsLoad = false;
   if (S.recover.id !== track.id) S.recover = { id: track.id, n: 0 };
   setLoading(true);
@@ -1497,6 +1785,11 @@ async function startTrack(track, { source = 'user', at = 0, autoplay = true } = 
     const t = await resolveTrack(track);
     if (token !== S.token) return;
     S.current = t;
+    if (t.src === 'pv' && S.set.upgrade && t.ytRef === undefined) {
+      const vid = await findYouTube(t).catch(() => null);
+      if (token !== S.token) return;
+      t.ytRef = vid || null;
+    }
     renderNowPlaying();
     await loadAndPlay(t, token, { at, autoplay, source });
     if (token !== S.token) return;
@@ -1523,6 +1816,22 @@ function playTrack(track, opts = {}) {
 function handlePlayError(e) {
   console.warn('Playback error:', e);
   setPlayingUI(false);
+  const cur = S.current;
+  if (e.code === 'EMBED' && cur) {
+    markYtBad(cur);
+    if (cur.src === 'pv') {                                // play the preview instead
+      cur.ytRef = null;
+      toast('Full song not available here — playing the preview', 'info');
+      return startTrack(cur, { source: S.source });
+    }
+    const q = `${cur.artist} ${cur.title}`;
+    const ph = ESSENTIALS.find(x => x.title === cur.title && x.artist === cur.artist);
+    if (ph) { delete resolved[ph.query]; store.set('resolved', resolved); }
+    if (S.set.sources.pv || S.set.sources.ia) {
+      toast('This video is blocked outside YouTube — trying another version', 'info');
+      return startTrack(ph ? { ...ph } : { title: cur.title, artist: cur.artist, query: q }, { source: S.source });
+    }
+  }
   if (e.code === 'MEDIA' && S.set.eqOn && !S.eqRetried) {
     S.eqRetried = true;
     S.set.eqOn = false; saveSettings(); refreshSettingsUI();
@@ -1550,17 +1859,18 @@ function onMidPlaybackError() {
 
 /* ---------- Transport ---------- */
 const hasNext = () => S.queue.length > 0 || (S.set.radio && (S.radio.length > 0 || !!(S.current && S.current.src)));
-const duration = () => { const d = S.audio.duration; return isFinite(d) && d > 0 ? d : (S.current && S.current.duration) || 0; };
+const duration = () => P.dur() || (S.current && S.current.duration) || 0;
 
 function togglePlay() {
   unlockAudio();
   if (!S.current) return playCollection(ESSENTIALS);
-  if (S.needsLoad || (!S.audio.src || S.silent) && !S.loading) {
+  if (S.needsLoad || (S.mode === 'audio' && (!S.audio.src || S.silent) && !S.loading)) {
     S.needsLoad = false;
     return startTrack(S.current, { source: 'resume', at: S.resumeAt });
   }
-  if (S.audio.paused) S.audio.play().catch(err => { if (err.name !== 'AbortError') startTrack(S.current, { source: 'resume', at: S.audio.currentTime }); });
-  else S.audio.pause();
+  if (!P.paused()) return P.pause();
+  if (S.mode === 'yt') return P.play();
+  S.audio.play().catch(err => { if (err.name !== 'AbortError') startTrack(S.current, { source: 'resume', at: S.audio.currentTime }); });
 }
 
 async function next({ auto = false } = {}) {
@@ -1577,7 +1887,7 @@ async function next({ auto = false } = {}) {
 
 function prev() {
   unlockAudio();
-  if (S.audio.currentTime > 3 || !S.history.length) { seekTo(0); return; }
+  if (P.time() > 3 || !S.history.length) { seekTo(0); return; }
   const p = S.history.pop();
   if (S.current) S.queue.unshift(S.current);
   renderQueue();
@@ -1586,7 +1896,7 @@ function prev() {
 
 function seekTo(sec) {
   const d = duration();
-  try { S.audio.currentTime = Math.max(0, d ? Math.min(sec, d - 0.25) : sec); } catch { }
+  P.seek(Math.max(0, d ? Math.min(sec, d - 0.25) : sec));
   if (S.needsLoad) S.resumeAt = Math.max(0, sec);
   updateProgress(true);
 }
@@ -1681,7 +1991,7 @@ async function refillRadio() {
 
 async function refillByArtist(t) {
   if (!t || !t.artist) return;
-  const srcs = [t.src, ...enabledSources().filter(s => s !== t.src && s !== 'yt')].filter(s => s && (s !== 'yt' || ytAvailable()));
+  const srcs = [t.src, ...enabledSources().filter(s => s !== t.src && s !== 'yt')].filter(s => s && (s !== 'yt' || ytServerUp() || (S.set.ytMode === 'embed' && S.set.ytKey)));
   for (const s of srcs) {
     try { if (addRadio(await searchSource(s, t.artist), 4)) break; } catch { }
   }
@@ -1696,7 +2006,8 @@ async function prefetchNext() {
   try {
     const t = n.src ? n : await resolveTrack(n);
     if (!n.src) { const i = list.indexOf(n); if (i > -1) list[i] = t; }
-    if (t.src === 'yt') await getStreamData(t.ref);
+    if (t.src === 'yt' && ytServerUp()) await getStreamData(t.ref);
+    if (t.src === 'pv' && S.set.upgrade && t.ytRef === undefined) t.ytRef = (await findYouTube(t)) || null;
   } catch { }
 }
 
@@ -1726,7 +2037,8 @@ function artBox(t, cls, { label = false } = {}) {
     : label ? coverLabel(t) : `<div class="ph-icon absolute inset-0 grid place-items-center text-white/85">${icon('note', 'w-1/2 h-1/2')}</div>`;
   return `<div class="art-box ${cls}" style="background:${grad(t.artist + t.title)}" ${t.query ? `data-q="${esc(t.query)}"` : ''}>${inner}${BARS}</div>`;
 }
-const srcBadge = t => t.src && SRC[t.src] && SRC[t.src].badge ? `<span class="src-badge ${t.src}">${SRC[t.src].badge}</span>` : '';
+const srcBadge = t => t.src === 'pv' && t.ytRef === null ? '<span class="src-badge pv">Preview</span>'
+  : t.src && SRC[t.src] && SRC[t.src].badge ? `<span class="src-badge ${t.src}">${SRC[t.src].badge}</span>` : '';
 function rowHTML(t, i, ctx, o = {}) {
   const r = resolvedFor(t);
   const extra = t.src === 'pv' ? '' : t.src === 'ia' ? (t.year || '') : t.duration ? fmtTime(t.duration) : (t.year || '');
@@ -1852,7 +2164,7 @@ function renderHome() {
     </section>
 
     <p class="mt-10 text-[12px] text-muted leading-relaxed max-w-xl">
-      Songs play in full from YouTube when a server is reachable, otherwise from free sources (Internet Archive, Audius) or as 30-second previews.
+      Songs play in full through YouTube's embedded player when a matching video is found (YouTube may show ads), otherwise as 30-second previews. Free full-length live recordings come from the Internet Archive.
       <button data-act="open-settings" class="text-accent">Music sources →</button>
     </p>
   `;
@@ -2062,13 +2374,13 @@ function addRecentQuery(q) {
    ===================================================================== */
 let artReq = 0;
 function setNpArt(t) {
-  const box = $('#npArt'), bg = $('#npBg'), req = ++artReq;
+  const box = $('#npArtImg'), bg = $('#npBg'), req = ++artReq;
   if (!t) {
-    box.dataset.art = ''; box.style.background = 'linear-gradient(135deg,#3a3a3c,#232325)';
+    box.dataset.art = ''; $('#npArt').style.background = 'linear-gradient(135deg,#3a3a3c,#232325)';
     box.innerHTML = `<div class="absolute inset-0 grid place-items-center text-white/25">${icon('note', 'w-1/3 h-1/3')}</div>`;
     bg.classList.remove('on'); return;
   }
-  box.style.background = grad(t.artist + t.title);
+  $('#npArt').style.background = grad(t.artist + t.title);
   const a = artInfo(t, true);
   if (!a) { box.dataset.art = ''; box.innerHTML = coverLabel(t, true); bg.classList.remove('on'); return; }
   if (box.dataset.art === a.url) return;
@@ -2089,7 +2401,9 @@ function setNpArt(t) {
 const SOURCE_LABEL = { radio: 'Playing from Autoplay', queue: 'Playing from Up Next', collection: '90s Alternative Essentials', station: 'Station', history: 'Now Playing', resume: 'Now Playing', user: 'Now Playing' };
 function npSourcePill(t) {
   if (!t || !t.src) return '';
-  const txt = t.src === 'pv' ? '30-second preview'
+  const fullYt = t.src === 'yt' || t.ytRef;
+  const txt = fullYt ? `YouTube${S.set.ytMode === 'embed' || t.ytRef ? ' · full song' : ''}`
+    : t.src === 'pv' ? (S.set.upgrade && t.ytRef === undefined && S.loading ? 'Finding full song…' : '30-second preview')
     : t.src === 'ia' ? `Internet Archive${t.album ? ' · ' + t.album : ''}`
     : t.src === 'au' ? 'Audius' : 'YouTube';
   return `<span class="np-pill">${esc(txt)}</span>`;
@@ -2143,14 +2457,15 @@ function refreshSpinner() {
 let lastPosSave = 0, rafOn = false;
 function onTimeUpdate() {
   if (!S.playing) updateProgress();
-  const d = duration(), a = S.audio;
-  if (!S.prefetched && d && d - a.currentTime < 30 && a.currentTime > 5) { S.prefetched = true; prefetchNext(); }
+  const d = duration(), now0 = P.time();
+  checkSkip();
+  if (!S.prefetched && d && d - now0 < 30 && now0 > 5) { S.prefetched = true; prefetchNext(); }
   const now = Date.now();
   if (now - lastPosSave > 5000 && S.current && S.current.src) {
     lastPosSave = now;
-    store.set('pos', { id: S.current.id, t: a.currentTime });
-    if ('mediaSession' in navigator && navigator.mediaSession.setPositionState && isFinite(a.duration) && a.duration > 0) {
-      try { navigator.mediaSession.setPositionState({ duration: a.duration, position: Math.min(a.currentTime, a.duration), playbackRate: a.playbackRate || 1 }); } catch { }
+    store.set('pos', { id: S.current.id, t: now0 });
+    if (S.mode === 'audio' && 'mediaSession' in navigator && navigator.mediaSession.setPositionState && d > 0) {
+      try { navigator.mediaSession.setPositionState({ duration: d, position: Math.min(now0, d), playbackRate: S.audio.playbackRate || 1 }); } catch { }
     }
   }
 }
@@ -2166,7 +2481,7 @@ function startProgressLoop() {
 }
 function updateProgress(force) {
   const d = duration();
-  const cur = S.needsLoad ? S.resumeAt : (S.audio ? S.audio.currentTime : 0);
+  const cur = S.needsLoad ? S.resumeAt : (S.audio ? P.time() : 0);
   const seek = $('#seek');
   if (!S.seeking || force) {
     const v = d ? Math.round(Math.min(1, cur / d) * 1000) : 0;
@@ -2194,12 +2509,12 @@ function setupMediaSession() {
   if (!('mediaSession' in navigator)) return;
   const set = (a, fn) => { try { navigator.mediaSession.setActionHandler(a, fn); } catch { } };
   set('play', () => togglePlay());
-  set('pause', () => S.audio.pause());
+  set('pause', () => P.pause());
   set('nexttrack', () => next());
   set('previoustrack', () => prev());
   set('seekto', d => seekTo(d.seekTime));
-  set('seekbackward', d => seekTo(S.audio.currentTime - (d.seekOffset || 10)));
-  set('seekforward', d => seekTo(S.audio.currentTime + (d.seekOffset || 10)));
+  set('seekbackward', d => seekTo(P.time() - (d.seekOffset || 10)));
+  set('seekforward', d => seekTo(P.time() + (d.seekOffset || 10)));
 }
 
 /* =====================================================================
@@ -2250,6 +2565,10 @@ function refreshSettingsUI() {
     sw.setAttribute('aria-checked', String(!!(k.startsWith('src:') ? S.set.sources[k.slice(4)] : S.set[k])));
   });
   $('#qualHint').textContent = QUALITY_HINT[S.set.quality];
+  $('#ytModeHint').textContent = S.set.ytMode === 'embed'
+    ? "YouTube's official player — no setup. YouTube may show ads, and playback stops when your phone locks."
+    : 'Ad-free audio through your own Piped/Invidious server (see Advanced below).';
+  if (document.activeElement !== $('#ytKey')) $('#ytKey').value = S.set.ytKey ? '••••••••••••' + S.set.ytKey.slice(-4) : '';
   $('#npRadio').classList.toggle('on', S.set.radio);
   $('#npRadio').setAttribute('aria-pressed', S.set.radio);
   $$('#eqPresets .chip').forEach(c => c.classList.toggle('active', c.dataset.preset === S.set.eqPreset));
@@ -2287,6 +2606,7 @@ function setEq(on) {
 function setSourceEnabled(src, on) {
   if (!on && enabledSources().length === 1 && S.set.sources[src]) return toast('Keep at least one music source on', 'error');
   S.set.sources[src] = on;
+  applySrcLabels();
   if (src === 'yt' && on) S.ytDownUntil = 0;
   saveSettings(); refreshSettingsUI(); renderChips();
   searchCache.clear();
@@ -2500,7 +2820,7 @@ function bindEvents() {
   let volSave;
   vol.addEventListener('input', () => {
     S.set.volume = vol.value / 100;
-    S.audio.volume = S.set.volume;
+    P.volume(S.set.volume);
     vol.style.setProperty('--p', vol.value + '%');
     clearTimeout(volSave); volSave = setTimeout(saveSettings, 400);
   });
@@ -2533,13 +2853,37 @@ function bindEvents() {
     if (key === 'provider') { renderInstances(); streamCache.clear(); searchCache.clear(); S.ytDownUntil = 0; }
     if (key === 'quality' || key === 'format') { streamCache.clear(); toast('Applies from the next YouTube song', 'info'); }
     if (key === 'fallback') for (const k of Object.keys(memResolved)) delete memResolved[k];
+    if (key === 'ytMode') { S.ytDownUntil = 0; searchCache.clear(); applySrcLabels(); renderChips(); if (S.query) doSearch(S.query); }
   }));
   $$('[data-toggle]').forEach(sw => sw.addEventListener('click', () => {
     const k = sw.dataset.toggle;
     if (k === 'radio') setRadio(!S.set.radio);
     if (k === 'eqOn') setEq(!S.set.eqOn);
     if (k.startsWith('src:')) setSourceEnabled(k.slice(4), !S.set.sources[k.slice(4)]);
+    if (k === 'upgrade' || k === 'sponsor') {
+      S.set[k] = !S.set[k]; saveSettings(); refreshSettingsUI();
+      if (k === 'upgrade') { applySrcLabels(); renderChips(); searchCache.clear(); if (S.query) doSearch(S.query); }
+    }
   }));
+  $('#ytKeySite').textContent = location.origin && location.origin !== 'null' ? location.origin + '/*' : 'your site address';
+  $('#ytKey').addEventListener('focus', e => { if (/^•/.test(e.target.value)) e.target.value = ''; });
+  $('#ytKeyForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const v = $('#ytKey').value.trim();
+    if (/^•/.test(v)) return;
+    if (!v) { S.set.ytKey = ''; saveSettings(); $('#ytKey').blur(); refreshSettingsUI(); return toast('API key removed', 'ok'); }
+    const prevKey = S.set.ytKey;
+    S.set.ytKey = v;
+    try {
+      await ytApiSearch('test');
+      saveSettings(); searchCache.clear();
+      for (const [k, c] of Object.entries(ytIds)) if (!c.v) delete ytIds[k];
+      store.set('ytids', ytIds);
+      $('#ytKey').blur(); refreshSettingsUI();
+      toast('YouTube API key saved', 'ok');
+      if (S.query) doSearch(S.query);
+    } catch (err) { S.set.ytKey = prevKey; toast(err.message || 'That key did not work', 'error'); }
+  });
   $('#instSelect').addEventListener('change', e => {
     S.set.instance = e.target.value; saveSettings();
     streamCache.clear(); searchCache.clear(); S.ytDownUntil = 0;
@@ -2551,7 +2895,7 @@ function bindEvents() {
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
     try { new URL(url); } catch { return toast('That doesn’t look like a valid URL', 'error'); }
     S.set.custom = [{ type: $('#customType').value, url, custom: true }, ...S.set.custom.filter(c => c.url !== url)];
-    S.set.instance = url; S.set.sources.yt = true; saveSettings();
+    S.set.instance = url; S.set.sources.yt = true; S.set.ytMode = 'server'; applySrcLabels(); saveSettings();
     $('#customUrl').value = '';
     S.ytDownUntil = 0; delete health[url];
     renderInstances(); refreshSettingsUI(); renderChips(); streamCache.clear(); searchCache.clear();
@@ -2597,8 +2941,8 @@ function bindEvents() {
     if (e.key === 'Escape') return closeTop();
     if (e.target.closest('input, textarea, select') || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === ' ' || e.key === 'k') { e.preventDefault(); togglePlay(); }
-    else if (e.key === 'ArrowRight') { e.preventDefault(); seekTo(S.audio.currentTime + 10); }
-    else if (e.key === 'ArrowLeft') { e.preventDefault(); seekTo(S.audio.currentTime - 10); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); seekTo(P.time() + 10); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); seekTo(P.time() - 10); }
     else if (e.key === 'n' || e.key === 'N') next();
     else if (e.key === 'p' || e.key === 'P') prev();
     else if (e.key === '/') { e.preventDefault(); closeAll(); switchView('search'); $('#q').focus(); }
