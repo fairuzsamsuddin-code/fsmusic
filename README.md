@@ -47,6 +47,17 @@ Open `index.html` in a browser, or serve the folder:
 python3 -m http.server 8000   # then visit http://localhost:8000
 ```
 
+## Your own YouTube server (optional)
+
+For ad-free YouTube playback that keeps going when the phone is locked, run a free Invidious
+server on Oracle Cloud's Always Free tier. The steps work from an iPhone, and the guide comes
+with a one-line installer:
+
+- Guide: [`server/`](server/index.html) (live at `/server/` on the GitHub Pages site)
+- Installer: [`server/install.sh`](server/install.sh), which sets up Invidious, Invidious Companion
+  and PostgreSQL with Docker, adds a Cloudflare quick tunnel for HTTPS, plus helper commands
+  (`fsmusic-url`, `fsmusic-update`, `fsmusic-logs`) and a weekly auto-update
+
 ## Notes
 
 - Public Piped/Invidious servers are mostly blocked by YouTube as of 2026. To get full YouTube

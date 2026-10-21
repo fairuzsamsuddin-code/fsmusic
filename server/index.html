@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FS Music Server Guide</title>
+<meta name="description" content="Set up a free Invidious server on Oracle Cloud for ad-free, background YouTube playback in FS Music.">
+<link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #ffffff; --fg: #1d1d1f; --muted: #6e6e73; --line: rgba(60,60,67,.14);
+    --accent: #fa2d48; --code: #f2f2f5; --ok: #34c759; --warn: #ff9f0a; --tip: #0a84ff;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #000; --card: #1c1c1e; --fg: #f5f5f7; --muted: #98989f; --line: rgba(84,84,88,.45); --code: #2c2c2e; }
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--fg); }
+  body { margin: 0; font: 16px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  main { max-width: 720px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 20px) 16px calc(env(safe-area-inset-bottom) + 60px); }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  header img { width: 44px; height: 44px; border-radius: 11px; box-shadow: 0 1px 4px rgba(0,0,0,.15); }
+  header a { color: var(--accent); text-decoration: none; font-size: 15px; margin-left: auto; white-space: nowrap; }
+  h1 { font-size: 30px; line-height: 1.15; letter-spacing: -.02em; margin: 16px 0 6px; }
+  .lead { color: var(--muted); margin: 0 0 18px; }
+  h2 { font-size: 21px; letter-spacing: -.01em; margin: 0 0 8px; display: flex; align-items: center; gap: 10px; }
+  h2 .n { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 15px; display: grid; place-items: center; }
+  h3 { font-size: 17px; margin: 18px 0 6px; }
+  section { background: var(--card); border-radius: 18px; padding: 18px; margin: 14px 0; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  ol, ul { padding-left: 22px; margin: 8px 0; }
+  li { margin: 6px 0; }
+  b { font-weight: 600; }
+  a { color: var(--accent); }
+  .muted { color: var(--muted); font-size: 14px; }
+  .ui { font-weight: 600; background: var(--code); border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
+  code { font: 14px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code); border-radius: 6px; padding: 1px 5px; word-break: break-word; }
+  .cmd { position: relative; display: flex; align-items: stretch; gap: 8px; background: var(--code); border-radius: 12px; padding: 12px; margin: 10px 0; }
+  .cmd code { flex: 1; background: none; padding: 0; font-size: 13.5px; line-height: 1.5; word-break: break-all; user-select: all; -webkit-user-select: all; }
+  .cmd button { flex: none; align-self: center; border: 0; border-radius: 9px; background: var(--accent); color: #fff; font: 600 14px -apple-system, sans-serif; padding: 8px 12px; cursor: pointer; }
+  .cmd button.done { background: var(--ok); }
+  .note { border-left: 4px solid var(--tip); background: color-mix(in srgb, var(--tip) 9%, transparent); border-radius: 10px; padding: 10px 12px; margin: 12px 0; font-size: 15px; }
+  .note.warn { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 10%, transparent); }
+  .note.ok { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 10%, transparent); }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  td { padding: 8px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+  td:first-child { white-space: nowrap; padding-left: 0; }
+  details { border-top: 1px solid var(--line); padding: 10px 0; }
+  details:first-of-type { border-top: 0; }
+  summary { font-weight: 600; cursor: pointer; }
+  .pill { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="../icons/apple-touch-icon.png" alt="">
+    <div><div style="font-weight:700">FS Music</div><div class="muted" style="margin:0">Server setup guide</div></div>
+    <a href="../">Open app →</a>
+  </header>
+
+  <h1>Your own free YouTube music server</h1>
+  <p class="lead">Run Invidious on Oracle Cloud's free tier. FS Music then plays YouTube songs ad-free, and they keep playing when your iPhone is locked. You can do every step on your iPhone, and it takes about 45 minutes.</p>
+
+  <section>
+    <span class="pill">Before you start</span>
+    <ul>
+      <li><b>You'll need:</b> an email address, a phone number, and a credit or debit card. Oracle uses the card only to verify you; staying within the free limits costs nothing.</li>
+      <li><b>Apps:</b> Safari, and <a href="https://apps.apple.com/app/termius-terminal-ssh-client/id549039908" target="_blank" rel="noopener">Termius</a> (free) to type commands on the server.</li>
+      <li><b>Tip:</b> Oracle's website is easier on iPhone in desktop mode. Tap <span class="ui">aA</span> in Safari's address bar, then <span class="ui">Request Desktop Website</span>.</li>
+    </ul>
+    <div class="note warn"><b>Honest heads-up:</b> YouTube blocks cloud servers more often than home internet. This setup may work for months, or YouTube may block it. Nothing breaks either way: FS Music automatically goes back to the embedded YouTube player and previews.</div>
+  </section>
+
+  <section>
+    <h2><span class="n">1</span>Create an SSH key in Termius</h2>
+    <p class="muted">This is the "key" that lets Termius log in to your server securely.</p>
+    <ol>
+      <li>Install <b>Termius</b> from the App Store and open it. You can skip creating a Termius account.</li>
+      <li>Go to <span class="ui">Keychain</span> → <span class="ui">+</span> → <span class="ui">Generate Key</span>.</li>
+      <li>Name it <code>fsmusic</code>, keep the default type, and tap <span class="ui">Save</span>.</li>
+      <li>Tap the new key and choose <span class="ui">Copy public key</span> (sometimes shown as <span class="ui">Share</span> → <span class="ui">Copy</span>). It starts with <code>ssh-ed25519</code> or <code>ssh-rsa</code>. Keep it on your clipboard for step 3.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2><span class="n">2</span>Create your Oracle Cloud account</h2>
+    <ol>
+      <li>Open <a href="https://signup.cloud.oracle.com" target="_blank" rel="noopener">signup.cloud.oracle.com</a> and choose the free account.</li>
+      <li><b>Home Region:</b> pick the one closest to you. <b>It can't be changed later.</b> If you're offered a choice, less popular regions often have more free servers available.</li>
+      <li>Verify your email, phone and card. Then wait for the "Your account is ready" email. That usually takes minutes, but can take a few hours.</li>
+      <li>Sign in at <a href="https://cloud.oracle.com" target="_blank" rel="noopener">cloud.oracle.com</a>.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2><span class="n">3</span>Create the free server</h2>
+    <ol>
+      <li>Tap <span class="ui">☰</span> (top left) → <span class="ui">Compute</span> → <span class="ui">Instances</span> → <span class="ui">Create instance</span>.</li>
+      <li><b>Name:</b> <code>fsmusic</code></li>
+      <li><b>Image:</b> <span class="ui">Change image</span> → <span class="ui">Ubuntu</span> → <b>Canonical Ubuntu 24.04</b> → <span class="ui">Select</span>.</li>
+      <li><b>Shape:</b> <span class="ui">Change shape</span> → <span class="ui">Ampere</span> → <b>VM.Standard.A1.Flex</b>. Set <b>OCPUs to 1</b> and <b>Memory to 4 GB</b>, then <span class="ui">Select</span>. It should say <i>Always Free-eligible</i>.</li>
+      <li><b>Networking:</b> leave the defaults. Make sure <i>Assign a public IPv4 address</i> is on.</li>
+      <li><b>Add SSH keys:</b> choose <span class="ui">Paste public keys</span> and paste the key from step 1.</li>
+      <li>Leave everything else as it is and tap <span class="ui">Create</span>.</li>
+      <li>Wait until the status turns <b>Running</b> (1–2 minutes). Then copy the <b>Public IP address</b> from the instance page.</li>
+    </ol>
+    <div class="note"><b>Why 1 CPU and 4 GB?</b> Oracle may take back free servers that look idle: all of CPU, network and memory use under 20% for a week. On 4 GB, the music server uses enough memory to stay above that line, and it's plenty fast.</div>
+    <div class="note warn"><b>"Out of capacity" error?</b> Free ARM servers are popular. Try another <i>Availability domain</i> (AD-2 or AD-3) on the same page, or try again later. Early morning often works.</div>
+  </section>
+
+  <section>
+    <h2><span class="n">4</span>Connect to the server</h2>
+    <ol>
+      <li>In Termius: <span class="ui">Hosts</span> → <span class="ui">+</span> → <span class="ui">New Host</span>.</li>
+      <li><b>Address:</b> the Public IP from step 3. <b>Username:</b> <code>ubuntu</code>. <b>Key:</b> select <code>fsmusic</code>. Tap <span class="ui">Save</span>.</li>
+      <li>Tap the host to connect and accept the fingerprint prompt. You're in when you see a line ending in <code>$</code>.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2><span class="n">5</span>Install the music server</h2>
+    <p>Copy this one line, paste it into Termius (long-press → <span class="ui">Paste</span>), and press return:</p>
+    <div class="cmd"><code>curl -fsSL https://fairuzsamsuddin-code.github.io/fsmusic/server/install.sh | bash</code><button type="button">Copy</button></div>
+    <p class="muted">It installs Docker and sets up Invidious, Invidious Companion and its database with fresh secret keys. It also adds a free secure web address and a weekly auto-update. It takes about 5–10 minutes. Keep Termius open until it finishes. <a href="install.sh" target="_blank">Read the script</a>.</p>
+    <p>When it's done, you'll see:</p>
+    <div class="note ok"><b>Your server is running!</b><br>Server address: <code>https://some-random-words.trycloudflare.com</code><br>✔ YouTube search works · ✔ Song playback works</div>
+    <p>Long-press the address in Termius and copy it.</p>
+  </section>
+
+  <section>
+    <h2><span class="n">6</span>Connect FS Music</h2>
+    <ol>
+      <li>Open <a href="../">FS Music</a> → <span class="ui">☰</span> Settings.</li>
+      <li>Scroll to <b>YouTube Servers (Advanced)</b> → <b>Add Custom Server</b>.</li>
+      <li>Paste the address, choose <span class="ui">Invidious</span>, and tap <span class="ui">Add</span>.</li>
+      <li>Play a song. Under the artist it should say <b>YouTube · your server</b>. Lock your phone, and the music keeps going.</li>
+    </ol>
+    <div class="note ok">That's it. Search now covers all of YouTube, with no ads, and Autoplay uses YouTube's own "related songs".</div>
+  </section>
+
+  <section>
+    <span class="pill">Everyday use</span>
+    <h3>Handy commands (type in Termius)</h3>
+    <table>
+      <tr><td><code>fsmusic-url</code></td><td>Shows your server's current address</td></tr>
+      <tr><td><code>fsmusic-update</code></td><td>Updates the server. Run it when songs stop playing; it fixes most YouTube changes</td></tr>
+      <tr><td><code>fsmusic-logs</code></td><td>Shows what the server is doing (Ctrl+C to stop)</td></tr>
+    </table>
+    <p class="muted">The server also updates itself every Sunday night.</p>
+    <h3>If the server restarts, its address changes</h3>
+    <p>The free tunnel gets a new address whenever the server reboots, which is rare. When songs suddenly stop working, connect with Termius and run:</p>
+    <div class="cmd"><code>fsmusic-url</code><button type="button">Copy</button></div>
+    <p>Then add the new address in FS Music the same way. It automatically replaces the old one.</p>
+  </section>
+
+  <section>
+    <span class="pill">Troubleshooting</span>
+    <details>
+      <summary>"✘ Song playback didn't work" or songs fail in the app</summary>
+      <p>Wait 5 minutes: Companion sometimes needs a little time to set up its first YouTube session. Then run <code>fsmusic-update</code> and try again. If it keeps failing, YouTube is probably blocking Oracle's IP address, a known risk with cloud servers. FS Music keeps working with the embedded player and previews in the meantime. Blocks are sometimes lifted after a while.</p>
+    </details>
+    <details>
+      <summary>Termius says "Permission denied (publickey)"</summary>
+      <p>Check that the username is <code>ubuntu</code> and the <code>fsmusic</code> key is selected. If the key wasn't added during step 3, the easiest fix is to delete the instance and create it again with the key pasted in.</p>
+    </details>
+    <details>
+      <summary>The installer stopped with an error</summary>
+      <p>Just run the same install line again. It's safe to repeat, and it picks up where it left off without changing your keys.</p>
+    </details>
+    <details>
+      <summary>Will Oracle charge me?</summary>
+      <p>Not while you stay on the Always Free resources: one A1.Flex server with 1 CPU and 4 GB, and the default disk. Free accounts can't run up charges. Oracle may still reclaim an idle free server. If that happens, create a new one by repeating steps 3–6.</p>
+    </details>
+    <details>
+      <summary>How do I remove everything?</summary>
+      <p>In Oracle Cloud: <span class="ui">Compute</span> → <span class="ui">Instances</span> → your instance → <span class="ui">More actions</span> → <span class="ui">Terminate</span>, and tick "permanently delete the boot volume". In FS Music, remove the server from the list in Settings.</p>
+    </details>
+  </section>
+
+  <p class="muted" style="text-align:center;margin-top:24px">Invidious and Invidious Companion are open-source projects by the <a href="https://invidious.io" target="_blank" rel="noopener">Invidious team</a>. Using them sits outside YouTube's terms of service, so keep your server for personal use.</p>
+</main>
+<script>
+  document.querySelectorAll('.cmd button').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const text = btn.previousElementSibling.textContent;
+      try { await navigator.clipboard.writeText(text); }
+      catch {
+        const r = document.createRange(); r.selectNodeContents(btn.previousElementSibling);
+        const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); document.execCommand('copy');
+      }
+      btn.textContent = 'Copied'; btn.classList.add('done');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1800);
+    });
+  });
+</script>
+</body>
+</html>

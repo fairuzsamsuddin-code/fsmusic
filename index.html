@@ -543,7 +543,7 @@
       <div class="group-label">YouTube Servers (Advanced)</div>
       <div class="group">
         <div class="cell flex-col !items-stretch">
-          <div><div class="cell-title">Provider</div><div class="cell-sub">Public servers are often blocked by YouTube. For reliable full songs, add your own Piped or Invidious server below.</div></div>
+          <div><div class="cell-title">Provider</div><div class="cell-sub">Public servers are often blocked by YouTube. For ad-free songs that keep playing with your phone locked, run your own Invidious server — <a class="text-accent" href="server/" target="_blank" rel="noopener">free setup guide</a>.</div></div>
           <div class="seg" data-setting="provider">
             <button data-val="auto">Auto</button><button data-val="piped">Piped</button><button data-val="invidious">Invidious</button>
           </div>
@@ -1705,8 +1705,8 @@ function setSource(url, at, autoplay) {
 async function loadAndPlay(t, token, opts = {}) {
   const vid = t.src === 'yt' ? t.ref : t.ytRef;
   if (!vid) return loadDirect(t, token, opts);
-  if (t.src === 'yt' && ytServerUp()) {
-    try { return await loadViaServer(t, token, opts); }
+  if (ytServerUp()) {
+    try { return await loadViaServer(t, token, opts, vid); }
     catch (e) { if (token !== S.token) return; console.warn('Server playback failed, using the embedded player', e.message); }
   }
   try { return await loadEmbed(t, vid, token, opts); }
@@ -1734,14 +1734,14 @@ function kickRadio(t, token, source) {
     .finally(() => { if (token === S.token) { S.radioLoading = false; renderQueue(); } });
 }
 
-async function loadViaServer(t, token, opts = {}) {
+async function loadViaServer(t, token, opts = {}, vid = t.ref) {
   const { at = 0, autoplay = true, source = 'user' } = opts;
   setMode('audio');
-  loadSegments(t.ref);
+  loadSegments(vid);
   const exclude = new Set();
   for (let round = 0; round < 3; round++) {
     let d;
-    try { d = await getStreamData(t.ref, exclude); }
+    try { d = await getStreamData(vid, exclude); }
     catch (e) { if (round === 0) throw e; break; }
     if (token !== S.token) return;
     if (round === 0) {
@@ -1756,7 +1756,7 @@ async function loadViaServer(t, token, opts = {}) {
       } catch (e) { if (token !== S.token) return; }
     }
     exclude.add(d.inst.url);
-    streamCache.delete(t.ref);
+    streamCache.delete(vid);
     markFail(d.inst, null);
   }
   throw Object.assign(new Error('Stream unavailable'), { code: 'MEDIA' });
@@ -1792,6 +1792,7 @@ async function startTrack(track, { source = 'user', at = 0, autoplay = true } = 
     await loadAndPlay(t, token, { at, autoplay, source });
     if (token !== S.token) return;
     S.failStreak = 0; S.eqRetried = false;
+    $('#npSrc').innerHTML = npSourcePill(t);       // now we know which engine actually plays it
     pushRecent(t);
     saveSession();
     renderQueue();
@@ -1850,7 +1851,7 @@ function onMidPlaybackError() {
   if (S.recover.id === t.id && S.recover.n >= 2) return handlePlayError(Object.assign(new Error('Stream dropped'), { code: 'MEDIA' }));
   S.recover = { id: t.id, n: (S.recover.id === t.id ? S.recover.n : 0) + 1 };
   const at = S.audio.currentTime || 0;
-  if (t.src === 'yt') streamCache.delete(t.ref);
+  if (currentVid()) streamCache.delete(currentVid());
   toast('Connection hiccup — reconnecting…', 'info');
   startTrack(t, { source: 'resume', at });
 }
@@ -2400,7 +2401,7 @@ const SOURCE_LABEL = { radio: 'Playing from Autoplay', queue: 'Playing from Up N
 function npSourcePill(t) {
   if (!t || !t.src) return '';
   const fullYt = t.src === 'yt' || t.ytRef;
-  const txt = fullYt ? `YouTube${S.set.ytMode === 'embed' || t.ytRef ? ' · full song' : ''}`
+  const txt = fullYt ? (S.mode === 'audio' && S.set.ytMode === 'server' ? 'YouTube · your server' : 'YouTube · full song')
     : t.src === 'pv' ? (S.set.upgrade && t.ytRef === undefined && S.loading ? 'Finding full song…' : '30-second preview')
     : t.src === 'ia' ? `Internet Archive${t.album ? ' · ' + t.album : ''}`
     : t.src === 'au' ? 'Audius' : 'YouTube';
@@ -2892,7 +2893,9 @@ function bindEvents() {
     let url = $('#customUrl').value.trim().replace(/\/+$/, '');
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
     try { new URL(url); } catch { return toast('That doesn’t look like a valid URL', 'error'); }
-    S.set.custom = [{ type: $('#customType').value, url, custom: true }, ...S.set.custom.filter(c => c.url !== url)];
+    const tunnel = /\.trycloudflare\.com$/i.test(host(url));   // quick-tunnel addresses change on restart: replace the old one
+    S.set.custom = [{ type: $('#customType').value, url, custom: true },
+      ...S.set.custom.filter(c => c.url !== url && !(tunnel && /\.trycloudflare\.com$/i.test(host(c.url))))];
     S.set.instance = url; S.set.sources.yt = true; S.set.ytMode = 'server'; applySrcLabels(); saveSettings();
     $('#customUrl').value = '';
     S.ytDownUntil = 0; delete health[url];
