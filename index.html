@@ -110,6 +110,9 @@
   body.is-paused .bars span { animation-play-state: paused; }
   @keyframes bar { 0%, 100% { height: 22%; } 50% { height: 58%; } }
   .is-playing .row-title { color: rgb(var(--accent)); }
+  .src-badge { display: inline-block; font-size: 9.5px; line-height: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 0 5px; border-radius: 4px; margin-right: 6px; vertical-align: 1px; color: rgb(var(--muted)); box-shadow: inset 0 0 0 1px rgb(var(--muted) / .5); }
+  .src-badge.pv { color: rgb(var(--accent)); box-shadow: inset 0 0 0 1px rgb(var(--accent) / .55); }
+  .np-pill { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; height: 20px; padding: 0 8px; border-radius: 6px; background: rgba(255,255,255,.14); font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* ---------- Rows ---------- */
   .row { display: flex; align-items: center; gap: 2px; border-radius: 12px; padding: 6px; transition: background-color .15s; }
@@ -321,10 +324,7 @@
             <span data-icon="xCircle" class="w-[18px] h-[18px]"></span>
           </button>
         </form>
-        <div class="flex gap-2 mt-3" role="tablist" aria-label="Result type">
-          <button class="chip active" data-act="filter" data-val="songs" role="tab">Songs</button>
-          <button class="chip" data-act="filter" data-val="videos" role="tab">All Videos</button>
-        </div>
+        <div id="srcChips" class="flex gap-2 mt-3 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0" role="tablist" aria-label="Music source"></div>
       </div>
       <div id="searchBody" class="px-4 sm:px-6 lg:px-10 pb-6"></div>
     </section>
@@ -352,6 +352,7 @@
             <div class="min-w-0 flex-1">
               <h2 id="npTitle" class="text-[21px] font-semibold leading-tight truncate">Not Playing</h2>
               <button id="npArtist" class="block max-w-full text-[19px] text-white/60 hover:text-white/80 truncate text-left transition-colors">Pick something to play</button>
+              <div id="npSrc" class="mt-1.5 h-5"></div>
             </div>
             <button id="npMore" class="w-9 h-9 grid place-items-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors shrink-0" aria-label="More options">
               <span data-icon="more" class="w-5 h-5"></span>
@@ -463,12 +464,41 @@
       </div>
     </div>
 
-    <!-- Source -->
+    <!-- Sources -->
     <div>
-      <div class="group-label">Music Source</div>
+      <div class="group-label">Music Sources</div>
+      <div class="group">
+        <div class="cell">
+          <div><div class="cell-title">YouTube</div><div class="cell-sub">Full songs, ad-free via Piped / Invidious. Needs a working server (see below).</div></div>
+          <button class="switch" role="switch" aria-checked="true" data-toggle="src:yt" aria-label="YouTube source"></button>
+        </div>
+        <div class="cell">
+          <div><div class="cell-title">Internet Archive</div><div class="cell-sub">Free, full-length live concerts &amp; archival recordings</div></div>
+          <button class="switch" role="switch" aria-checked="true" data-toggle="src:ia" aria-label="Internet Archive source"></button>
+        </div>
+        <div class="cell">
+          <div><div class="cell-title">Audius</div><div class="cell-sub">Free full tracks from independent artists</div></div>
+          <button class="switch" role="switch" aria-checked="true" data-toggle="src:au" aria-label="Audius source"></button>
+        </div>
+        <div class="cell">
+          <div><div class="cell-title">Previews</div><div class="cell-sub">30-second clips of almost any song, with official album art (iTunes &amp; Deezer)</div></div>
+          <button class="switch" role="switch" aria-checked="true" data-toggle="src:pv" aria-label="Previews source"></button>
+        </div>
+        <div class="cell flex-col !items-stretch">
+          <div><div class="cell-title">When a full song isn&rsquo;t available</div><div class="cell-sub">Used for the Listen Now songs and stations when YouTube is unreachable</div></div>
+          <div class="seg" data-setting="fallback">
+            <button data-val="preview">Play Preview</button><button data-val="live">Prefer Live Version</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- YouTube servers -->
+    <div>
+      <div class="group-label">YouTube Servers</div>
       <div class="group">
         <div class="cell flex-col !items-stretch">
-          <div><div class="cell-title">Provider</div><div class="cell-sub">Ad-free YouTube audio via open-source front-ends</div></div>
+          <div><div class="cell-title">Provider</div><div class="cell-sub">Public servers are often blocked by YouTube. For reliable full songs, add your own Piped or Invidious server below.</div></div>
           <div class="seg" data-setting="provider">
             <button data-val="auto">Auto</button><button data-val="piped">Piped</button><button data-val="invidious">Invidious</button>
           </div>
@@ -561,6 +591,8 @@ const grad = s => { const h = hash(s) % 360; return `linear-gradient(135deg, hsl
 const thumb = id => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
 const thumbMax = id => `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`;
 const isDesktop = () => matchMedia('(min-width: 1024px)').matches;
+const first = v => Array.isArray(v) ? v[0] : v;
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const UA = navigator.userAgent;
 const isIOS = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const isSafari = /AppleWebKit/.test(UA) && !/Chrome|Chromium|CriOS|Android|Edg/.test(UA);
@@ -570,6 +602,20 @@ function fmtTime(s) {
   s = Math.floor(s);
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
   return h ? `${h}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}` : `${m}:${String(r).padStart(2, '0')}`;
+}
+function parseLen(v) {
+  if (v == null || v === '') return 0;
+  const s = String(v);
+  if (s.includes(':')) return s.split(':').reduce((acc, p) => acc * 60 + (parseFloat(p) || 0), 0) | 0;
+  return Math.round(parseFloat(s) || 0);
+}
+const STOP = new Set(['the', 'a', 'an', 'and', 'of', 'by', 'feat', 'ft', 'song', 'songs']);
+const tokens = s => String(s || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(w => w.length > 1 && !STOP.has(w));
+function matchScore(t, q) {
+  const qt = tokens(q);
+  if (!qt.length) return 0;
+  const hay = ` ${tokens(`${t.title} ${t.artist}`).join(' ')} `;
+  return qt.filter(w => hay.includes(` ${w} `) || hay.includes(` ${w}`)).length / qt.length;
 }
 
 const store = {
@@ -657,9 +703,18 @@ const STATIONS = [
 ];
 
 const GENRES = [
-  ['Grunge', '90s grunge'], ['Britpop', 'britpop 90s'], ['Shoegaze', 'shoegaze 90s'], ['Trip-Hop', '90s trip hop'],
-  ['Post-Grunge', 'post grunge 90s'], ['Indie Rock', '90s indie rock'], ['Dream Pop', 'dream pop 90s'], ['Alt Hits', '90s alternative hits']
+  ['Grunge', '90s grunge'], ['Britpop', 'britpop'], ['Shoegaze', 'shoegaze'], ['Trip-Hop', 'trip hop'],
+  ['Live Concerts', 'Dave Matthews Band live'], ['Indie Rock', 'indie rock'], ['Dream Pop', 'dream pop'], ['Alt Hits', '90s alternative']
 ];
+
+/* Music sources */
+const SRC = {
+  yt: { label: 'YouTube', section: 'Songs', sub: 'Full songs from YouTube', badge: '', full: true },
+  pv: { label: 'Previews', section: 'Previews', sub: '30-second clips · iTunes & Deezer', badge: 'Preview', full: false },
+  ia: { label: 'Live Archive', section: 'Internet Archive', sub: 'Full-length live & archival recordings', badge: 'Archive', full: true },
+  au: { label: 'Audius', section: 'Audius', sub: 'Full tracks from independent artists', badge: 'Audius', full: true }
+};
+const SRC_ORDER = ['yt', 'pv', 'ia', 'au'];
 
 /* =====================================================================
    Settings & state
@@ -669,12 +724,10 @@ const DEFAULT_INSTANCES = [
   { type: 'piped', url: 'https://pipedapi.adminforge.de' },
   { type: 'piped', url: 'https://api.piped.private.coffee' },
   { type: 'piped', url: 'https://pipedapi.reallyaweso.me' },
-  { type: 'piped', url: 'https://pipedapi.leptons.xyz' },
   { type: 'invidious', url: 'https://inv.nadeko.net' },
+  { type: 'invidious', url: 'https://inv.thepixora.com' },
   { type: 'invidious', url: 'https://invidious.nerdvpn.de' },
-  { type: 'invidious', url: 'https://yewtu.be' },
-  { type: 'invidious', url: 'https://iv.melmac.space' },
-  { type: 'invidious', url: 'https://invidious.f5.si' }
+  { type: 'invidious', url: 'https://yewtu.be' }
 ];
 const EQ_FREQS = [60, 170, 350, 1000, 3500, 10000];
 const EQ_PRESETS = {
@@ -689,29 +742,45 @@ const EQ_PRESETS = {
 };
 const DEFAULTS = {
   provider: 'auto', instance: 'auto', quality: 'high', format: 'auto', radio: true,
-  eqOn: false, eqPreset: 'flat', eqGains: [0, 0, 0, 0, 0, 0], volume: 1, custom: []
+  eqOn: false, eqPreset: 'flat', eqGains: [0, 0, 0, 0, 0, 0], volume: 1, custom: [],
+  sources: { yt: true, ia: true, au: true, pv: true }, fallback: 'preview'
 };
 
+/* Tracks from v1 stored a bare YouTube id; upgrade them to the multi-source shape */
+function normalizeTrack(t) {
+  if (!t || typeof t !== 'object') return null;
+  if (!t.src && t.id && /^[\w-]{11}$/.test(t.id)) return { ...t, src: 'yt', ref: t.id, id: 'yt:' + t.id };
+  return t;
+}
+const normList = l => (Array.isArray(l) ? l : []).map(normalizeTrack).filter(Boolean);
+
+const storedSet = store.get('settings', {});
 const S = {
-  set: { ...DEFAULTS, ...store.get('settings', {}) },
+  set: { ...DEFAULTS, ...storedSet, sources: { ...DEFAULTS.sources, ...(storedSet.sources || {}) } },
   current: null, source: 'user',
   queue: [], radio: [], history: [],
-  recent: store.get('recent', []),          // recently played tracks
-  recentQ: store.get('recentQ', []),        // recent search queries
-  results: [], query: '', lastQuery: '', filter: 'songs', searchState: 'idle', searchError: '',
+  recent: normList(store.get('recent', [])),
+  recentQ: store.get('recentQ', []),
+  res: {}, flat: [], query: '', lastQuery: '', filter: 'all',
   loading: false, buffering: false, playing: false, token: 0,
   failStreak: 0, recover: { id: null, n: 0 }, eqRetried: false,
   prefetched: false, radioLoading: false,
   needsLoad: false, resumeAt: 0, pendingSeek: 0,
   audio: null, silent: false, unlocked: false,
   discovered: (store.get('discovered', {}).list) || [],
-  autoDiscovered: false, streamInst: null, seeking: false,
+  autoDiscovered: false, streamInst: null, seeking: false, ytDownUntil: 0,
+  art: store.get('art', {}),
   open: new Set(), sheet: null, view: 'home'
 };
 if (!Array.isArray(S.set.eqGains) || S.set.eqGains.length !== EQ_FREQS.length) S.set.eqGains = [...DEFAULTS.eqGains];
 if (!Array.isArray(S.set.custom)) S.set.custom = [];
-const resolved = store.get('resolved', {});    // placeholder query -> resolved track
-const health = {};                              // instance url -> health info
+if (!SRC_ORDER.some(s => S.set.sources[s])) S.set.sources.pv = true;
+const enabledSources = () => SRC_ORDER.filter(s => S.set.sources[s]);
+
+const resolved = {};                                   // placeholder query -> YouTube track (persisted)
+for (const [k, v] of Object.entries(store.get('resolved', {}))) { const t = normalizeTrack(v); if (t) resolved[k] = t; }
+const memResolved = {};                                // placeholder query -> non-YouTube track (this session only)
+const health = {};
 let lastGood = store.get('lastGood', null);
 const streamCache = new Map();
 const searchCache = new Map();
@@ -741,16 +810,16 @@ function toast(msg, type = 'info', opts = {}) {
   el.setAttribute('role', type === 'error' ? 'alert' : 'status');
   el.innerHTML = `${icon(type === 'error' ? 'alert' : type === 'ok' ? 'check' : 'info', '')}<span class="leading-snug">${esc(msg)}</span>` +
     (opts.action ? `<button class="ml-1 text-accent font-semibold whitespace-nowrap">${esc(opts.action.label)}</button>` : '');
+  const dismiss = () => { el.classList.remove('show'); setTimeout(() => el.remove(), 400); };
   if (opts.action) el.querySelector('button').onclick = () => { dismiss(); opts.action.run(); };
   wrap.appendChild(el);
   requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
-  const dismiss = () => { el.classList.remove('show'); setTimeout(() => el.remove(), 400); };
   el.addEventListener('click', e => { if (e.target === el) dismiss(); });
   setTimeout(dismiss, opts.duration || (type === 'error' ? 4800 : 3000));
 }
 
 /* =====================================================================
-   API layer — Piped & Invidious adapters with automatic fallback
+   Networking
    ===================================================================== */
 class ApiError extends Error {}
 
@@ -761,7 +830,7 @@ async function fetchJSON(url, ms = 8000) {
     const r = await fetch(url, { signal: ctl.signal, headers: { Accept: 'application/json' } });
     if (!r.ok) { const e = new Error(`HTTP ${r.status}`); e.status = r.status; throw e; }
     const data = await r.json();
-    if (data && !Array.isArray(data) && data.error) throw new Error(String(data.error).slice(0, 140));
+    if (data && !Array.isArray(data) && typeof data.error === 'string') throw new Error(data.error.slice(0, 140));
     return data;
   } catch (e) {
     if (e.name === 'AbortError') { const t = new Error('Timed out'); t.timeout = true; throw t; }
@@ -769,6 +838,40 @@ async function fetchJSON(url, ms = 8000) {
   } finally { clearTimeout(timer); }
 }
 
+/* JSONP fallback for APIs that don't send CORS headers (iTunes, Deezer, Internet Archive) */
+let jsonpN = 0;
+function jsonp(url, { ms = 8000, param = 'callback', extra = '' } = {}) {
+  return new Promise((resolve, reject) => {
+    const cb = `__fsm${Date.now().toString(36)}${jsonpN++}`;
+    const s = document.createElement('script');
+    const timer = setTimeout(() => done(reject, Object.assign(new Error('Timed out'), { timeout: true })), ms);
+    function done(fn, v) { clearTimeout(timer); window[cb] = () => {}; s.remove(); fn(v); }
+    window[cb] = d => {
+      if (d && d.error) done(reject, new Error(typeof d.error === 'string' ? d.error : (d.error.message || 'API error')));
+      else done(resolve, d);
+    };
+    s.onerror = () => done(reject, new Error('Network error'));
+    s.src = `${url}${url.includes('?') ? '&' : '?'}${extra}${param}=${cb}`;
+    document.head.appendChild(s);
+  });
+}
+/* Prefer fetch; if CORS or the network blocks it, retry once via JSONP */
+const corsMode = {};
+async function getJSON(url, { ms = 8000, jsonpParam = 'callback', jsonpExtra = '', key = host(url) } = {}) {
+  if (corsMode[key] !== 'jsonp') {
+    try { const d = await fetchJSON(url, ms); corsMode[key] = 'fetch'; return d; }
+    catch (e) {
+      if (e.status || e.timeout || corsMode[key] === 'fetch') throw e;   // a real HTTP error, not CORS
+    }
+  }
+  const d = await jsonp(url, { ms, param: jsonpParam, extra: jsonpExtra });
+  corsMode[key] = 'jsonp';
+  return d;
+}
+
+/* =====================================================================
+   Source 1 — YouTube via Piped / Invidious (with automatic failover)
+   ===================================================================== */
 const NOISE_RE = /\s*[\(\[\{]\s*(?:official|music video|lyric|lyrics|audio|video|visuali[sz]er|hd|hq|4k|remaster|remastered|mv|m\/v|explicit)[^\)\]\}]*[\)\]\}]/gi;
 function cleanTitle(s) {
   return String(s || '')
@@ -778,7 +881,7 @@ function cleanTitle(s) {
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
-function normalizeMeta(id, rawTitle, rawAuthor, duration) {
+function ytTrack(vid, rawTitle, rawAuthor, duration) {
   let author = String(rawAuthor || '').trim();
   const isTopic = /\s-\sTopic$/i.test(author);
   const isVevo = /VEVO$/i.test(author);
@@ -790,7 +893,7 @@ function normalizeMeta(id, rawTitle, rawAuthor, duration) {
     if (m) { artist = m[1].trim(); title = m[2].trim(); }
   }
   title = title.replace(/^["“'](.+)["”']$/, '$1').trim();
-  return { id, title: title || String(rawTitle || 'Unknown'), artist: artist || 'Unknown Artist', duration: Math.max(0, Math.round(+duration || 0)) };
+  return { id: 'yt:' + vid, src: 'yt', ref: vid, title: title || String(rawTitle || 'Unknown'), artist: artist || 'Unknown Artist', duration: Math.max(0, Math.round(+duration || 0)) };
 }
 const vidFromUrl = u => { const m = String(u || '').match(/[?&]v=([\w-]{11})/); return m ? m[1] : null; };
 
@@ -800,34 +903,34 @@ const Piped = {
       const d = await fetchJSON(`${base}/search?q=${enc(q)}&filter=${f}`, opt.timeout);
       return (d.items || []).filter(i => i.type === 'stream' && !i.isShort && i.duration !== -1).map(pipedItem).filter(Boolean);
     };
-    let items = await run(opt.filter === 'songs' ? 'music_songs' : 'videos');
-    if (!items.length && opt.filter === 'songs') items = await run('videos');
+    let items = await run('music_songs');
+    if (!items.length) items = await run('videos');
     return items;
   },
-  async stream(base, id, opt = {}) {
-    const d = await fetchJSON(`${base}/streams/${id}`, opt.timeout || 10000);
+  async stream(base, vid, opt = {}) {
+    const d = await fetchJSON(`${base}/streams/${vid}`, opt.timeout || 10000);
     if (d.livestream) throw new Error('Live streams are not supported');
     const sources = (d.audioStreams || [])
       .filter(s => s.url && (!s.audioTrackType || /original/i.test(s.audioTrackType)))
       .map(s => ({ url: s.url, mime: String(s.mimeType || '').split(';')[0], bitrate: +s.bitrate || 0 }));
     return {
-      meta: normalizeMeta(id, d.title, d.uploader, d.duration),
+      meta: ytTrack(vid, d.title, d.uploader, d.duration),
       sources,
       related: (d.relatedStreams || []).filter(i => !i.type || i.type === 'stream').map(pipedItem).filter(Boolean)
     };
   }
 };
-function pipedItem(i) { const id = vidFromUrl(i.url); return id ? normalizeMeta(id, i.title, i.uploaderName, i.duration) : null; }
+function pipedItem(i) { const v = vidFromUrl(i.url); return v ? ytTrack(v, i.title, i.uploaderName, i.duration) : null; }
 
 const Invidious = {
   async search(base, q, opt = {}) {
     const d = await fetchJSON(`${base}/api/v1/search?q=${enc(q)}&type=video`, opt.timeout);
     return (Array.isArray(d) ? d : [])
       .filter(i => i.type === 'video' && i.videoId && !i.liveNow && !i.isUpcoming)
-      .map(i => normalizeMeta(i.videoId, i.title, i.author, i.lengthSeconds));
+      .map(i => ytTrack(i.videoId, i.title, i.author, i.lengthSeconds));
   },
-  async stream(base, id, opt = {}) {
-    const d = await fetchJSON(`${base}/api/v1/videos/${id}?local=true`, opt.timeout || 10000);
+  async stream(base, vid, opt = {}) {
+    const d = await fetchJSON(`${base}/api/v1/videos/${vid}?local=true`, opt.timeout || 10000);
     if (d.liveNow) throw new Error('Live streams are not supported');
     const sources = [];
     for (const f of d.adaptiveFormats || []) {
@@ -835,13 +938,13 @@ const Invidious = {
       if (f.audioTrack && f.audioTrack.audioIsDefault === false) continue;
       const mime = f.type.split(';')[0], bitrate = parseInt(f.bitrate, 10) || 0;
       // `latest_version` is proxied through the instance (local=true) and resists URL expiry
-      sources.push({ url: `${base}/latest_version?id=${id}&itag=${f.itag}&local=true`, mime, bitrate });
+      sources.push({ url: `${base}/latest_version?id=${vid}&itag=${f.itag}&local=true`, mime, bitrate });
       if (f.url) { try { sources.push({ url: new URL(f.url, base).href, mime, bitrate: bitrate - 1 }); } catch { } }
     }
     return {
-      meta: normalizeMeta(id, d.title, d.author, d.lengthSeconds),
+      meta: ytTrack(vid, d.title, d.author, d.lengthSeconds),
       sources,
-      related: (d.recommendedVideos || []).filter(r => r.videoId).map(r => normalizeMeta(r.videoId, r.title, r.author, r.lengthSeconds))
+      related: (d.recommendedVideos || []).filter(r => r.videoId).map(r => ytTrack(r.videoId, r.title, r.author, r.lengthSeconds))
     };
   }
 };
@@ -869,6 +972,7 @@ function candidates() {
 }
 function markOk(inst, ms) {
   health[inst.url] = { ok: true, ms: Math.round(ms), fail: 0, until: 0 };
+  S.ytDownUntil = 0;
   if (lastGood !== inst.url) { lastGood = inst.url; store.set('lastGood', lastGood); }
 }
 function markFail(inst, e) {
@@ -878,11 +982,17 @@ function markFail(inst, e) {
   h.err = e && (e.status === 429 ? 'Rate limited' : e.timeout ? 'Timed out' : e.status ? `HTTP ${e.status}` : 'Unreachable');
   health[inst.url] = h;
 }
+const ytAvailable = () => S.set.sources.yt && Date.now() > S.ytDownUntil;
 
 async function api(kind, arg, opt = {}) {
   if (!navigator.onLine) throw new ApiError("You're offline. Check your connection.");
-  const list = candidates().filter(i => !(opt.exclude && opt.exclude.has(i.url))).slice(0, opt.max || 6);
-  if (!list.length) throw new ApiError('No music servers available. Add one in Settings.');
+  if (!opt.force && Date.now() < S.ytDownUntil) throw new ApiError('No YouTube server is responding. Add your own in Settings.');
+  const now = Date.now();
+  let list = candidates().filter(i => !(opt.exclude && opt.exclude.has(i.url)));
+  const fresh = list.filter(i => !(health[i.url] && health[i.url].until > now));
+  if (fresh.length || !opt.force) list = fresh;
+  list = list.slice(0, opt.max || 5);
+  if (!list.length) { S.ytDownUntil = Date.now() + 2 * 60e3; throw new ApiError('No YouTube server is responding. Add your own in Settings.'); }
   let failed = 0, rateLimited = 0;
   for (const inst of list) {
     const t0 = performance.now();
@@ -902,9 +1012,11 @@ async function api(kind, arg, opt = {}) {
     S.autoDiscovered = true;
     if (await discoverInstances()) return api(kind, arg, { ...opt, _retried: true });
   }
-  throw new ApiError(rateLimited === failed
-    ? 'Music servers are rate-limiting right now. Try again in a minute.'
-    : "Couldn't reach any music server. Try another in Settings → Music Source.");
+  if (!opt.exclude || !opt.exclude.size) S.ytDownUntil = Date.now() + 10 * 60e3;
+  renderInstances();
+  throw new ApiError(rateLimited && rateLimited === failed
+    ? 'YouTube servers are rate-limiting right now.'
+    : 'No YouTube server is responding. Add your own in Settings.');
 }
 
 async function discoverInstances() {
@@ -927,44 +1039,282 @@ async function discoverInstances() {
   return found.length;
 }
 
-async function searchTracks(q, filter) {
-  const key = `${filter}|${q.toLowerCase()}`;
-  const c = searchCache.get(key);
-  if (c && Date.now() - c.at < 10 * 60e3) return c.items;
-  const { data } = await api('search', q, { filter });
-  searchCache.set(key, { at: Date.now(), items: data });
-  return data;
-}
-
-async function getStreamData(id, exclude) {
-  const c = streamCache.get(id);
+async function getStreamData(vid, exclude) {
+  const c = streamCache.get(vid);
   if (c && Date.now() - c.at < 20 * 60e3 && !(exclude && exclude.has(c.inst.url))) return c;
-  const { data, inst } = await api('stream', id, { exclude });
+  const { data, inst } = await api('stream', vid, { exclude, max: exclude && exclude.size ? 3 : 5 });
   const entry = { ...data, inst, at: Date.now() };
-  streamCache.set(id, entry);
+  streamCache.set(vid, entry);
   if (streamCache.size > 40) streamCache.delete(streamCache.keys().next().value);
   return entry;
 }
 
-/* Resolve a placeholder (artist + title, no video id) into a playable track */
-async function resolveTrack(t) {
-  if (t.id) return t;
-  if (resolved[t.query]) return { ...resolved[t.query] };
-  const results = await searchTracks(t.query, 'songs');
-  if (!results.length) throw new ApiError(`No match found for “${t.title}”`);
-  const norm = s => String(s).toLowerCase().replace(/^the\s+/, '').replace(/[^a-z0-9]/g, '');
+/* =====================================================================
+   Source 2 — Internet Archive (free full-length audio, CORS/JSONP)
+   ===================================================================== */
+const IA_JUNK = /^(tuning|banter|crowd|intro|outro|applause|encore break|set ?break|soundcheck|silence|tape flip|dead air|\s*-?\s*)$/i;
+function cleanIaTitle(s) {
+  return String(s || '').replace(/\.[a-z0-9]{2,4}$/i, '').replace(/^[a-z0-9]*?(?:d\d+)?t\d+\s*[-_.]?\s*/i, '').replace(/_/g, ' ').trim() || String(s || '');
+}
+const Archive = {
+  items: new Map(),
+  async item(identifier) {
+    if (this.items.has(identifier)) return this.items.get(identifier);
+    const d = await getJSON(`https://archive.org/metadata/${enc(identifier)}`, { ms: 10000, key: 'archive.org' });
+    const m = d.metadata || {};
+    if (!d.files || d.is_dark || m['access-restricted-item'] === 'true') { this.items.set(identifier, []); return []; }
+    const itemArtist = first(m.creator) || first(m.artist) || '';
+    const album = first(m.title) || identifier;
+    const year = String(first(m.date) || first(m.year) || '').slice(0, 4);
+    const rank = f => /vbr/i.test(f.format) ? 0 : /320/.test(f.format) ? 1 : /256|192|160|128/.test(f.format) ? 2 : 3;
+    const byKey = new Map();
+    for (const f of d.files) {
+      if (f.private === 'true' || !/\.mp3$/i.test(f.name || '')) continue;
+      const key = String(f.original || f.name).replace(/\.[^.]+$/, '');
+      const cur = byKey.get(key);
+      if (!cur || rank(f) < rank(cur)) byKey.set(key, f);
+    }
+    const tracks = [...byKey.values()].map((f, i) => ({
+      id: `ia:${identifier}/${f.name}`, src: 'ia', ref: identifier,
+      title: f.title ? String(f.title).trim() : cleanIaTitle(f.name),
+      artist: first(f.creator) || first(f.artist) || itemArtist || 'Unknown Artist',
+      album, year,
+      duration: parseLen(f.length),
+      n: parseInt(f.track, 10) || 1000 + i,
+      art: `https://archive.org/services/img/${enc(identifier)}`,
+      url: `https://archive.org/download/${enc(identifier)}/${f.name.split('/').map(enc).join('/')}`
+    })).sort((a, b) => a.n - b.n).slice(0, 80);
+    this.items.set(identifier, tracks);
+    return tracks;
+  },
+  async findItems(query, rows = 8) {
+    const q = `(${query}) AND mediatype:(audio) AND -collection:(stream_only)`;
+    const d = await getJSON(`https://archive.org/advancedsearch.php?q=${enc(q)}&fl[]=identifier&rows=${rows}&output=json`, { ms: 9000, key: 'archive.org' });
+    return ((d.response && d.response.docs) || []).map(x => x.identifier).filter(Boolean);
+  },
+  async search(q) {
+    const ids = (await this.findItems(q, 6)).slice(0, 4);
+    const lists = await Promise.allSettled(ids.map(id => this.item(id)));
+    const all = lists.flatMap(r => r.status === 'fulfilled' ? r.value : []).filter(t => !IA_JUNK.test(t.title));
+    const titleToks = tokens(q);
+    const scored = all.map((t, i) => [t, titleToks.filter(w => tokens(t.title).includes(w)).length, i]);
+    scored.sort((a, b) => b[1] - a[1] || a[2] - b[2]);
+    // keep strong title matches first, then the rest of the best-matching shows
+    const seen = new Set();
+    return scored.map(x => x[0]).filter(t => { const k = t.ref + '|' + tokens(t.title).join(''); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 40);
+  },
+  async related(t) {
+    const tracks = await this.item(t.ref);
+    const i = tracks.findIndex(x => x.id === t.id);
+    let out = tracks.slice(i + 1, i + 10);                       // keep the show going
+    if (out.length < 6 && t.artist) {
+      try {
+        const ids = (await this.findItems(`creator:("${t.artist.replace(/"/g, '')}")`, 12)).filter(x => x !== t.ref);
+        const pick = ids[Math.floor(Math.random() * ids.length)];
+        if (pick) out = out.concat((await this.item(pick)).slice(0, 10));
+      } catch { }
+    }
+    return out;
+  },
+  streamUrl: async t => t.url
+};
+
+/* =====================================================================
+   Source 3 — Audius (free full tracks, independent artists)
+   ===================================================================== */
+const AUDIUS_APP = 'FSMusic';
+const Audius = {
+  base: 'https://api.audius.co',
+  triedHosts: false,
+  url(p) { return `${this.base}/v1${p}${p.includes('?') ? '&' : '?'}app_name=${AUDIUS_APP}`; },
+  async get(p) {
+    try { return await fetchJSON(this.url(p), 8000); }
+    catch (e) {
+      if (this.triedHosts) throw e;
+      this.triedHosts = true;                     // legacy discovery: the root lists healthy API hosts
+      const d = await fetchJSON('https://api.audius.co', 6000);
+      const hosts = Array.isArray(d && d.data) ? d.data : [];
+      if (!hosts.length) throw e;
+      this.base = hosts[Math.floor(Math.random() * hosts.length)];
+      return fetchJSON(this.url(p), 8000);
+    }
+  },
+  map(x) {
+    if (!x || !x.id || x.is_streamable === false || x.is_delete || x.is_stream_gated) return null;
+    const art = x.artwork || {};
+    return {
+      id: 'au:' + x.id, src: 'au', ref: x.id, title: x.title || 'Untitled',
+      artist: (x.user && x.user.name) || 'Unknown Artist', userId: x.user && x.user.id,
+      duration: x.duration || 0, genre: x.genre || '',
+      art: art['480x480'] || art['150x150'] || '', artLg: art['1000x1000'] || art['480x480'] || ''
+    };
+  },
+  async search(q) {
+    const d = await this.get(`/tracks/search?query=${enc(q)}`);
+    return (d.data || []).map(x => this.map(x)).filter(Boolean);
+  },
+  async related(t) {
+    const reqs = [];
+    if (t.userId) reqs.push(this.get(`/users/${t.userId}/tracks?limit=10`));
+    if (t.genre) reqs.push(this.get(`/tracks/trending?genre=${enc(t.genre)}&time=month`));
+    const out = [];
+    for (const r of await Promise.allSettled(reqs)) if (r.status === 'fulfilled') out.push(...(r.value.data || []).map(x => this.map(x)).filter(Boolean));
+    return shuffle(out);
+  },
+  streamUrl: async t => Audius.url(`/tracks/${t.ref}/stream`)
+};
+
+/* =====================================================================
+   Source 4 — Previews (iTunes Search + Deezer artist radio)
+   ===================================================================== */
+const sizeArt = (u, px) => String(u || '').replace(/\/\d+x\d+bb\./, `/${px}x${px}bb.`);
+const Previews = {
+  itunesMap(x) {
+    if (!x || !x.previewUrl || x.kind && x.kind !== 'song') return null;
+    return {
+      id: 'pv:it' + x.trackId, src: 'pv', ref: 'it' + x.trackId,
+      title: x.trackName, artist: x.artistName, album: x.collectionName,
+      year: String(x.releaseDate || '').slice(0, 4), genre: x.primaryGenreName, artistId: x.artistId,
+      duration: 30, fullDuration: Math.round((x.trackTimeMillis || 0) / 1000),
+      art: sizeArt(x.artworkUrl100, 400), artLg: sizeArt(x.artworkUrl100, 1000), url: x.previewUrl
+    };
+  },
+  deezerMap(x) {
+    if (!x || !x.preview) return null;
+    return {
+      id: 'pv:dz' + x.id, src: 'pv', ref: 'dz' + x.id, dz: x.id,
+      title: x.title_short || x.title, artist: (x.artist && x.artist.name) || 'Unknown Artist', album: x.album && x.album.title,
+      duration: 30, fullDuration: x.duration || 0,
+      art: x.album && (x.album.cover_big || x.album.cover_medium), artLg: x.album && (x.album.cover_xl || x.album.cover_big),
+      url: x.preview, fetchedAt: Date.now()
+    };
+  },
+  itunes(path) { return getJSON(`https://itunes.apple.com/${path}`, { ms: 8000, key: 'itunes' }); },
+  deezer(path) { return getJSON(`https://api.deezer.com/${path}`, { ms: 8000, key: 'deezer', jsonpExtra: 'output=jsonp&' }); },
+  async search(q, limit = 25) {
+    try {
+      const d = await this.itunes(`search?term=${enc(q)}&media=music&entity=song&limit=${limit}`);
+      const list = (d.results || []).map(x => this.itunesMap(x)).filter(Boolean);
+      if (list.length) return list;
+    } catch (e) { console.warn('iTunes search failed', e.message); }
+    const d = await this.deezer(`search?q=${enc(q)}&limit=${limit}`);
+    return (d.data || []).map(x => this.deezerMap(x)).filter(Boolean);
+  },
+  async related(t) {
+    try {
+      const a = await this.deezer(`search/artist?q=${enc(t.artist)}&limit=1`);
+      const id = a.data && a.data[0] && a.data[0].id;
+      if (id) {
+        const r = await this.deezer(`artist/${id}/radio?limit=40`);
+        const list = (r.data || []).map(x => this.deezerMap(x)).filter(Boolean);
+        if (list.length >= 5) return list;
+      }
+    } catch (e) { console.warn('Deezer radio failed', e.message); }
+    const out = [];
+    try {
+      if (t.artistId) {
+        const d = await this.itunes(`lookup?id=${t.artistId}&entity=song&limit=25`);
+        out.push(...(d.results || []).filter(x => x.wrapperType === 'track').map(x => this.itunesMap(x)).filter(Boolean));
+      }
+    } catch { }
+    try { if (t.genre) out.push(...await this.search(`${t.genre}${t.year ? ' ' + t.year.slice(0, 3) + '0s' : ''}`, 25)); } catch { }
+    return shuffle(out);
+  },
+  async streamUrl(t) {
+    if (t.dz && Date.now() - (t.fetchedAt || 0) > 15 * 60e3) {   // Deezer preview links expire
+      try { const d = await this.deezer(`track/${t.dz}`); if (d.preview) { t.url = d.preview; t.fetchedAt = Date.now(); } } catch { }
+    }
+    if (!t.url) throw new Error('No preview available');
+    return t.url;
+  }
+};
+
+/* =====================================================================
+   Source registry
+   ===================================================================== */
+const Sources = {
+  yt: {
+    search: async q => (await api('search', q, { max: 4, timeout: 7000, quiet: true })).data,
+    related: async t => (await getStreamData(t.ref)).related
+  },
+  ia: Archive,
+  au: Audius,
+  pv: Previews
+};
+
+async function searchSource(src, q) {
+  const key = `${src}|${q.toLowerCase()}`;
+  const c = searchCache.get(key);
+  if (c && Date.now() - c.at < 10 * 60e3) return c.items;
+  const items = await Sources[src].search(q);
+  searchCache.set(key, { at: Date.now(), items });
+  return items;
+}
+
+async function relatedFor(t) {
+  try { return await Sources[t.src].related(t); }
+  catch (e) { console.warn('Related lookup failed', e.message); return []; }
+}
+
+function bestMatch(results, t, strict) {
+  const norm = s => String(s || '').toLowerCase().replace(/^the\s+/, '').replace(/[^a-z0-9]/g, '');
   const a = norm(t.artist), ti = norm(t.title);
   const score = r => {
     const ra = norm(r.artist);
     return (ra && (ra.includes(a) || a.includes(ra)) ? 2 : 0) + (norm(r.title).includes(ti) ? 2 : 0)
-      - (/\b(live|cover|karaoke|instrumental|reaction|8d|slowed|sped up)\b/i.test(r.title) ? 3 : 0);
+      - (/\b(live|cover|karaoke|instrumental|reaction|8d|slowed|sped up|tribute)\b/i.test(r.title) && !strict ? 3 : 0);
   };
-  const best = results.slice(0, 8).map((r, i) => [r, score(r), i]).sort((x, y) => y[1] - x[1] || x[2] - y[2])[0][0];
-  const track = { ...best, title: t.title, artist: t.artist };
-  resolved[t.query] = track;
-  store.set('resolved', resolved);
-  updatePlaceholderArt(t.query, track.id);
-  return { ...track };
+  const ranked = (results || []).slice(0, 10).map((r, i) => [r, score(r), i]).sort((x, y) => y[1] - x[1] || x[2] - y[2]);
+  if (!ranked.length) return null;
+  if (strict && ranked[0][1] < 4) return null;
+  return ranked[0][0];
+}
+
+/* Resolve a placeholder (artist + title, no source yet) into a playable track */
+async function resolveTrack(t) {
+  if (t.src) return t;
+  const hit = resolved[t.query] || memResolved[t.query];
+  if (hit) return { ...hit };
+  const order = [];
+  if (ytAvailable()) order.push('yt');
+  if (S.set.fallback === 'live' && S.set.sources.ia) order.push('ia');
+  if (S.set.sources.pv) order.push('pv');
+  if (S.set.fallback !== 'live' && S.set.sources.ia) order.push('ia');
+  if (S.set.sources.au) order.push('au');
+  for (const src of order) {
+    try {
+      const best = bestMatch(await searchSource(src, t.query), t, src !== 'yt');
+      if (!best) continue;
+      const cov = S.art[t.query];
+      const track = { ...best, title: t.title, artist: t.artist, ...(cov && src !== 'pv' ? { cover: cov.art, coverLg: cov.artLg } : {}) };
+      if (src === 'yt') { resolved[t.query] = track; store.set('resolved', resolved); }
+      else memResolved[t.query] = track;
+      updatePlaceholderArt(t.query, artInfo(track), track.id);
+      return { ...track };
+    } catch (e) { console.warn(`Resolve via ${src} failed`, e.message); }
+  }
+  throw new ApiError(`Couldn't find “${t.title}” on any music source`);
+}
+
+/* Fetch real album covers for the Listen Now songs (iTunes artwork) */
+async function prefetchArt() {
+  for (const t of ESSENTIALS) {
+    if (S.art[t.query]) continue;
+    try {
+      const d = await Previews.itunes(`search?term=${enc(t.query)}&media=music&entity=song&limit=5`);
+      const list = (d.results || []).map(x => Previews.itunesMap(x)).filter(Boolean);
+      const b = bestMatch(list, t, true);
+      if (b && b.art) {
+        S.art[t.query] = { art: b.art, artLg: b.artLg };
+        store.set('art', S.art);
+        updatePlaceholderArt(t.query, { url: b.art, hq: false });
+        if (S.current && S.current.title === t.title && S.current.artist === t.artist && !S.current.cover && S.current.src !== 'pv') {
+          S.current.cover = b.art; S.current.coverLg = b.artLg; renderNowPlaying();
+        }
+      }
+    } catch (e) { if (e.status === 403 || e.status === 429) break; }
+    await sleep(450);
+  }
 }
 
 /* =====================================================================
@@ -1038,7 +1388,7 @@ function rebuildAudio(keepPlaying) {
     try { old.pause(); old.removeAttribute('src'); old.load(); } catch { }
     if (old._eq) try { old._eq.disconnect(); } catch { }
   }
-  if (keepPlaying && url && S.current && S.current.id) {
+  if (keepPlaying && url && S.current && S.current.src) {
     S.pendingSeek = at;
     S.audio.src = url;
     if (wasPlaying) S.audio.play().catch(() => startTrack(S.current, { source: 'resume', at }));
@@ -1098,19 +1448,20 @@ function setSource(url, at, autoplay) {
   });
 }
 
-async function loadAndPlay(t, token, { at = 0, autoplay = true, source = 'user' } = {}) {
+async function loadAndPlay(t, token, opts = {}) {
+  if (t.src !== 'yt') return loadDirect(t, token, opts);
+  const { at = 0, autoplay = true, source = 'user' } = opts;
   const exclude = new Set();
   for (let round = 0; round < 3; round++) {
     let d;
-    try { d = await getStreamData(t.id, exclude); }
+    try { d = await getStreamData(t.ref, exclude); }
     catch (e) { if (round === 0) throw e; break; }
     if (token !== S.token) return;
     if (round === 0) {
       if (!t.duration && d.meta.duration) t.duration = d.meta.duration;
       updateRadio(t, d.related, source);
     }
-    const sources = rankSources(d.sources);
-    for (const src of sources.slice(0, 3)) {
+    for (const src of rankSources(d.sources).slice(0, 3)) {
       try {
         await setSource(src.url, at, autoplay);
         if (token === S.token) { S.streamInst = d.inst; refreshServerLabel(); }
@@ -1118,10 +1469,22 @@ async function loadAndPlay(t, token, { at = 0, autoplay = true, source = 'user' 
       } catch (e) { if (token !== S.token) return; }
     }
     exclude.add(d.inst.url);
-    streamCache.delete(t.id);
+    streamCache.delete(t.ref);
     markFail(d.inst, null);
   }
   throw Object.assign(new Error('Stream unavailable'), { code: 'MEDIA' });
+}
+
+async function loadDirect(t, token, { at = 0, autoplay = true, source = 'user' } = {}) {
+  const url = await Sources[t.src].streamUrl(t);
+  if (token !== S.token) return;
+  if (S.set.radio) {
+    S.radioLoading = !S.radio.length; renderQueue();
+    relatedFor(t).then(rel => { if (token === S.token) updateRadio(t, rel, source); })
+      .finally(() => { if (token === S.token) { S.radioLoading = false; renderQueue(); } });
+  }
+  await setSource(url, at, autoplay);
+  S.streamInst = null;
 }
 
 async function startTrack(track, { source = 'user', at = 0, autoplay = true } = {}) {
@@ -1164,7 +1527,7 @@ function handlePlayError(e) {
     S.eqRetried = true;
     S.set.eqOn = false; saveSettings(); refreshSettingsUI();
     rebuildAudio(false);
-    toast("This server's streams don't support the equalizer — turned it off", 'error');
+    toast("This source doesn't support the equalizer — turned it off", 'error');
     return startTrack(S.current, { source: S.source });
   }
   const title = S.current ? S.current.title : 'this song';
@@ -1175,17 +1538,18 @@ function handlePlayError(e) {
 }
 
 function onMidPlaybackError() {
-  if (S.silent || S.loading || !S.current || !S.current.id) return;
-  if (S.recover.id === S.current.id && S.recover.n >= 2) return handlePlayError(Object.assign(new Error('Stream dropped'), { code: 'MEDIA' }));
-  S.recover = { id: S.current.id, n: (S.recover.id === S.current.id ? S.recover.n : 0) + 1 };
+  const t = S.current;
+  if (S.silent || S.loading || !t || !t.src) return;
+  if (S.recover.id === t.id && S.recover.n >= 2) return handlePlayError(Object.assign(new Error('Stream dropped'), { code: 'MEDIA' }));
+  S.recover = { id: t.id, n: (S.recover.id === t.id ? S.recover.n : 0) + 1 };
   const at = S.audio.currentTime || 0;
-  streamCache.delete(S.current.id);
+  if (t.src === 'yt') streamCache.delete(t.ref);
   toast('Connection hiccup — reconnecting…', 'info');
-  startTrack(S.current, { source: 'resume', at });
+  startTrack(t, { source: 'resume', at });
 }
 
 /* ---------- Transport ---------- */
-const hasNext = () => S.queue.length > 0 || (S.set.radio && (S.radio.length > 0 || !!(S.current && S.current.id)));
+const hasNext = () => S.queue.length > 0 || (S.set.radio && (S.radio.length > 0 || !!(S.current && S.current.src)));
 const duration = () => { const d = S.audio.duration; return isFinite(d) && d > 0 ? d : (S.current && S.current.duration) || 0; };
 
 function togglePlay() {
@@ -1203,6 +1567,7 @@ async function next({ auto = false } = {}) {
   unlockAudio();
   if (S.queue.length) { const t = S.queue.shift(); renderQueue(); return playTrack(t, { source: 'queue' }); }
   if (S.set.radio) {
+    for (let i = 0; i < 40 && !S.radio.length && S.radioLoading; i++) await sleep(200);   // related tracks still loading
     if (!S.radio.length) await refillRadio();
     if (S.radio.length) { const t = S.radio.shift(); renderQueue(); return playTrack(t, { source: 'radio' }); }
   }
@@ -1228,8 +1593,8 @@ function seekTo(sec) {
 
 /* ---------- Library actions ---------- */
 const copy = t => ({ ...t });
-function playNow(t) { unlockAudio(); if (S.lastQuery) addRecentQuery(S.lastQuery); playTrack(copy(t), { source: 'user' }); }
-const dropFromRadio = t => { if (t.id) S.radio = S.radio.filter(r => r.id !== t.id); };
+const dropFromRadio = t => { const id = (resolvedFor(t) || t).id; if (id) S.radio = S.radio.filter(r => r.id !== id); };
+function playNow(t) { unlockAudio(); playTrack(copy(t), { source: 'user' }); }
 function playNext(t) {
   if (!S.current) return playNow(t);
   dropFromRadio(t);
@@ -1240,10 +1605,10 @@ function addToQueue(t) {
   dropFromRadio(t);
   S.queue.push(copy(t)); renderQueue(); saveSession(); toast('Added to Up Next', 'ok');
 }
-function playCollection(list, shuffle = false) {
+function playCollection(list, shuf = false) {
   unlockAudio();
   const arr = list.map(copy);
-  if (shuffle) for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+  if (shuf) shuffle(arr);
   S.queue = arr.slice(1); S.radio = [];
   renderQueue();
   playTrack(arr[0], { source: 'collection' });
@@ -1264,58 +1629,63 @@ function jumpTo(ctx, i) {
 function setRadio(on) {
   S.set.radio = on; saveSettings();
   if (!on) S.radio = [];
-  else if (S.current && S.current.id) refillRadio();
+  else if (S.current && S.current.src) refillRadio();
   refreshSettingsUI(); renderQueue(); saveSession();
 }
 
 /* =====================================================================
-   Smart autoplay — endless radio from related videos
+   Smart autoplay — endless radio from related tracks
    ===================================================================== */
 const BAD_RELATED = /full album|playlist|\bmix\b|compilation|greatest hits|non-?stop|\d+\s*hours?|top \d+|reaction|interview|documentary|podcast|tutorial|lesson|karaoke/i;
 const titleKey = x => String(x.title || '').toLowerCase().replace(/\(.*?\)|\[.*?\]/g, '').replace(/[^a-z0-9]/g, '');
 
-function addRadio(list) {
+function addRadio(list, perArtistMax = 3) {
   const seen = new Set([S.current && S.current.id, ...S.history.map(x => x.id), ...S.queue.map(x => x.id), ...S.radio.map(x => x.id)]);
   const seenTitles = new Set([...S.history.slice(-40), S.current, ...S.queue, ...S.radio].filter(Boolean).map(titleKey));
   const perArtist = {};
-  S.radio.forEach(r => { const k = r.artist.toLowerCase(); perArtist[k] = (perArtist[k] || 0) + 1; });
+  S.radio.forEach(r => { const k = String(r.artist).toLowerCase(); perArtist[k] = (perArtist[k] || 0) + 1; });
   let added = 0;
   for (const r of list || []) {
     if (S.radio.length >= 12) break;
-    if (!r || !r.id || seen.has(r.id)) continue;
-    if (r.duration && (r.duration < 75 || r.duration > 660)) continue;
+    if (!r || !r.id || !r.src || seen.has(r.id)) continue;
+    if ((r.src === 'yt' || r.src === 'au') && r.duration && (r.duration < 75 || r.duration > 660)) continue;
+    if (r.src === 'ia' && ((r.duration && r.duration < 60) || IA_JUNK.test(r.title))) continue;
     if (BAD_RELATED.test(r.title)) continue;
     const k = titleKey(r);
     if (!k || seenTitles.has(k)) continue;
-    const ak = r.artist.toLowerCase();
-    if ((perArtist[ak] || 0) >= 3) continue;
+    const ak = String(r.artist).toLowerCase();
+    if ((perArtist[ak] || 0) >= perArtistMax) continue;
     S.radio.push(r); seen.add(r.id); seenTitles.add(k); perArtist[ak] = (perArtist[ak] || 0) + 1; added++;
   }
   return added;
 }
+const perArtistFor = t => t && t.src === 'ia' ? 99 : 3;   // archive radio keeps the concert going
 
 function updateRadio(t, related, source) {
   if (!S.set.radio) return;
-  if (source === 'radio' || source === 'resume' || source === 'history') { if (S.radio.length < 5) addRadio(related); }
-  else if (!S.queue.length || !S.radio.length) { S.radio = []; addRadio(related); }
+  if (source === 'radio' || source === 'resume' || source === 'history') { if (S.radio.length < 5) addRadio(related, perArtistFor(t)); }
+  else if (!S.queue.length || !S.radio.length) { S.radio = []; addRadio(related, perArtistFor(t)); }
   if (!S.radio.length) refillByArtist(t);
   renderQueue(); saveSession();
 }
 
 async function refillRadio() {
-  if (!S.current || !S.current.id || S.radioLoading) return;
+  const t = S.current;
+  if (!t || !t.src || S.radioLoading) return;
   S.radioLoading = true; renderQueue();
   try {
-    const d = await getStreamData(S.current.id);
-    addRadio(d.related);
-    if (!S.radio.length) await refillByArtist(S.current);
-  } catch (e) { console.warn('Radio refill failed', e); }
-  finally { S.radioLoading = false; renderQueue(); saveSession(); }
+    addRadio(await relatedFor(t), perArtistFor(t));
+    if (!S.radio.length) await refillByArtist(t);
+  } finally { S.radioLoading = false; renderQueue(); saveSession(); }
 }
 
 async function refillByArtist(t) {
   if (!t || !t.artist) return;
-  try { addRadio(await searchTracks(`${t.artist} songs`, 'songs')); renderQueue(); } catch { }
+  const srcs = [t.src, ...enabledSources().filter(s => s !== t.src && s !== 'yt')].filter(s => s && (s !== 'yt' || ytAvailable()));
+  for (const s of srcs) {
+    try { if (addRadio(await searchSource(s, t.artist), 4)) break; } catch { }
+  }
+  renderQueue();
 }
 
 async function prefetchNext() {
@@ -1324,29 +1694,43 @@ async function prefetchNext() {
   if (!list.length) { if (S.set.radio) refillRadio(); return; }
   const n = list[0];
   try {
-    const t = n.id ? n : await resolveTrack(n);
-    if (!n.id) { const i = list.indexOf(n); if (i > -1) list[i] = t; }
-    await getStreamData(t.id);
+    const t = n.src ? n : await resolveTrack(n);
+    if (!n.src) { const i = list.indexOf(n); if (i > -1) list[i] = t; }
+    if (t.src === 'yt') await getStreamData(t.ref);
   } catch { }
 }
 
 /* =====================================================================
    Rendering — shared bits
    ===================================================================== */
-const resolvedFor = t => t.id ? t : (t.query && resolved[t.query]);
+const resolvedFor = t => t.src ? t : (t.query && (resolved[t.query] || memResolved[t.query]));
+/* Artwork for any track: explicit cover > cached album art > source artwork. `hq` = 4:3 YouTube thumb to crop */
+function artInfo(t, lg = false) {
+  if (!t) return null;
+  const pick = (a, b) => lg ? (b || a) : a;
+  if (t.cover) return { url: pick(t.cover, t.coverLg), hq: false };
+  if (t.query && S.art[t.query]) return { url: pick(S.art[t.query].art, S.art[t.query].artLg), hq: false };
+  const r = resolvedFor(t) || t;
+  if (r.cover) return { url: pick(r.cover, r.coverLg), hq: false };
+  if (r.src === 'yt') return { url: thumb(r.ref), hq: true, yt: r.ref };
+  const u = pick(r.art, r.artLg);
+  return u ? { url: u, hq: false } : null;
+}
 function coverLabel(t, lg) {
   return `<div class="cover-label ${lg ? 'lg' : ''}"><span class="cl-artist">${esc(t.artist)}</span><span class="cl-title">${esc(t.title)}</span></div>`;
 }
+const imgTag = (a, alt = '') => `<img src="${esc(a.url)}" class="${a.hq ? 'hq' : ''}" loading="lazy" decoding="async" alt="${esc(alt)}" onerror="this.remove()">`;
 function artBox(t, cls, { label = false } = {}) {
-  const r = resolvedFor(t);
-  const inner = r && r.id
-    ? `<img src="${thumb(r.id)}" class="hq" loading="lazy" decoding="async" alt="" onerror="this.remove()">`
-    : label ? coverLabel(t) : `<div class="absolute inset-0 grid place-items-center text-white/85">${icon('note', 'w-1/2 h-1/2')}</div>`;
+  const a = artInfo(t);
+  const inner = a ? imgTag(a)
+    : label ? coverLabel(t) : `<div class="ph-icon absolute inset-0 grid place-items-center text-white/85">${icon('note', 'w-1/2 h-1/2')}</div>`;
   return `<div class="art-box ${cls}" style="background:${grad(t.artist + t.title)}" ${t.query ? `data-q="${esc(t.query)}"` : ''}>${inner}${BARS}</div>`;
 }
+const srcBadge = t => t.src && SRC[t.src] && SRC[t.src].badge ? `<span class="src-badge ${t.src}">${SRC[t.src].badge}</span>` : '';
 function rowHTML(t, i, ctx, o = {}) {
   const r = resolvedFor(t);
-  const meta = [t.artist, t.duration ? fmtTime(t.duration) : (t.year || '')].filter(Boolean).map(esc).join(' · ');
+  const extra = t.src === 'pv' ? '' : t.src === 'ia' ? (t.year || '') : t.duration ? fmtTime(t.duration) : (t.year || '');
+  const meta = srcBadge(t) + [t.artist, extra].filter(Boolean).map(esc).join(' · ');
   const actions = o.actions === false ? '' :
     (o.remove
       ? `<button class="row-btn !text-muted" data-act="remove" aria-label="Remove ${esc(t.title)}">${icon('minus')}</button>`
@@ -1370,13 +1754,15 @@ function markPlaying() {
   const id = S.current && S.current.id;
   $$('[data-id]').forEach(el => el.classList.toggle('is-playing', !!id && el.dataset.id === id));
 }
-function updatePlaceholderArt(query, id) {
-  $$('[data-q]').forEach(el => {
-    if (el.dataset.q !== query || el.querySelector('img')) return;
-    el.querySelector('.cover-label, .grid')?.remove();
-    el.insertAdjacentHTML('afterbegin', `<img src="${thumb(id)}" class="hq" alt="" onerror="this.remove()" style="animation:fadeIn .5s ease both">`);
-    const holder = el.closest('[data-id]');
-    if (holder) holder.dataset.id = id;
+function updatePlaceholderArt(query, art, id) {
+  $$('.art-box[data-q]').forEach(el => {
+    if (el.dataset.q !== query) return;
+    const img = el.querySelector('img');
+    if (art && (!img || (img.classList.contains('hq') && !art.hq))) {
+      el.querySelectorAll('img, .cover-label, .ph-icon').forEach(n => n.remove());
+      el.insertAdjacentHTML('afterbegin', imgTag(art).replace('<img', '<img style="animation:fadeIn .5s ease both"'));
+    }
+    if (id) { const holder = el.closest('[data-id]'); if (holder) holder.dataset.id = id; }
   });
   markPlaying();
 }
@@ -1403,7 +1789,7 @@ function renderHome() {
     <section class="mt-5">
       <div class="hero grain relative overflow-hidden rounded-[26px] p-6 sm:p-9 min-h-[360px] sm:min-h-[290px] flex flex-col justify-end text-white shadow-[0_20px_50px_-20px_rgba(80,20,120,.6)]">
         <div class="hero-stack absolute right-8 sm:right-10 top-7 sm:top-1/2 sm:-translate-y-1/2 flex items-center pointer-events-none" aria-hidden="true">
-          ${stackArt.map((t, i) => `<div class="art-box w-[86px] h-[86px] sm:w-[150px] sm:h-[150px] rounded-xl shadow-2xl ring-1 ring-white/20 ${i === 0 ? '-rotate-[8deg] translate-x-6' : i === 2 ? 'rotate-[7deg] -translate-x-6' : 'z-10 -translate-y-2 scale-110'}" style="background:${grad(t.artist + t.title)}" data-q="${esc(t.query)}">${resolvedFor(t) ? `<img src="${thumb(resolvedFor(t).id)}" class="hq" alt="">` : coverLabel(t)}</div>`).join('')}
+          ${stackArt.map((t, i) => { const a = artInfo(t); return `<div class="art-box w-[86px] h-[86px] sm:w-[150px] sm:h-[150px] rounded-xl shadow-2xl ring-1 ring-white/20 ${i === 0 ? '-rotate-[8deg] translate-x-6' : i === 2 ? 'rotate-[7deg] -translate-x-6' : 'z-10 -translate-y-2 scale-110'}" style="background:${grad(t.artist + t.title)}" data-q="${esc(t.query)}">${a ? imgTag(a) : coverLabel(t)}</div>`; }).join('')}
         </div>
         <div class="relative sm:max-w-[50%] lg:max-w-[400px]">
           <p class="text-[11px] font-semibold uppercase tracking-[.2em] text-white/75">Featured Playlist</p>
@@ -1462,8 +1848,13 @@ function renderHome() {
 
     <section class="mt-9">
       ${sectionHead('More ’90s Alternative')}
-      <ul class="grid md:grid-cols-2 gap-x-6">${more.map((t, i) => rowHTML(t, i + 8, 'ess')).join('')}</ul>
+      <ul class="grid grid-cols-[minmax(0,1fr)] md:grid-cols-2 gap-x-6">${more.map((t, i) => rowHTML(t, i + 8, 'ess')).join('')}</ul>
     </section>
+
+    <p class="mt-10 text-[12px] text-muted leading-relaxed max-w-xl">
+      Songs play in full from YouTube when a server is reachable, otherwise from free sources (Internet Archive, Audius) or as 30-second previews.
+      <button data-act="open-settings" class="text-accent">Music sources →</button>
+    </p>
   `;
   renderRecent();
   markPlaying();
@@ -1482,7 +1873,7 @@ function renderRecent() {
             <div class="relative">${artBox(t, 'aspect-square rounded-xl shadow-[0_8px_24px_-10px_rgba(0,0,0,.45)]')}
               <span class="card-play absolute right-2 bottom-2 w-9 h-9 rounded-full bg-black/55 backdrop-blur-md grid place-items-center text-white">${icon('play', 'w-4 h-4')}</span></div>
             <div class="mt-2 text-[14px] font-medium truncate">${esc(t.title)}</div>
-            <div class="text-[13px] text-muted truncate">${esc(t.artist)}</div>
+            <div class="text-[13px] text-muted truncate">${srcBadge(t)}${esc(t.artist)}</div>
           </button>
         </div>`).join('')}
     </div>`;
@@ -1490,21 +1881,48 @@ function renderRecent() {
 }
 
 function pushRecent(t) {
-  if (!t || !t.id) return;
-  S.recent = [{ id: t.id, title: t.title, artist: t.artist, duration: t.duration }, ...S.recent.filter(x => x.id !== t.id)].slice(0, 20);
+  if (!t || !t.src) return;
+  S.recent = [{ ...t }, ...S.recent.filter(x => x.id !== t.id)].slice(0, 20);
   store.set('recent', S.recent);
   renderRecent();
 }
 
 /* =====================================================================
-   Search
+   Search — all sources in parallel, rendered progressively
    ===================================================================== */
-let searchTimer = null, searchSeq = 0;
+let searchTimer = null, searchSeq = 0, renderPending = false;
+
+function renderChips() {
+  const srcs = enabledSources();
+  if (S.filter !== 'all' && !srcs.includes(S.filter)) S.filter = 'all';
+  $('#srcChips').innerHTML = [['all', 'All'], ...srcs.map(s => [s, SRC[s].label])].map(([v, label]) =>
+    `<button class="chip ${S.filter === v ? 'active' : ''}" data-act="filter" data-val="${v}" role="tab" aria-selected="${S.filter === v}">${esc(label)}</button>`).join('');
+}
+
+function pickTop(q) {
+  let best = null, bv = -1;
+  for (const s of enabledSources()) {
+    const r = S.res[s];
+    if (!r || r.state !== 'done') continue;
+    r.items.slice(0, 5).forEach((t, i) => {
+      const v = matchScore(t, q) + (SRC[s].full ? 0.2 : 0) + (s === 'yt' ? 0.15 : 0) - (s === 'au' ? 0.1 : 0) - i * 0.03;
+      if (v > bv) { bv = v; best = t; }
+    });
+  }
+  return bv >= 0.6 ? best : null;
+}
+
+function scheduleRenderSearch() {
+  if (renderPending) return;
+  renderPending = true;
+  requestAnimationFrame(() => { renderPending = false; renderSearch(); });
+}
 
 function renderSearch() {
   const body = $('#searchBody');
   const q = S.query.trim();
   if (!q) {
+    S.flat = [];
     body.innerHTML = `
       ${S.recentQ.length ? `
         <div class="mt-3">
@@ -1527,35 +1945,38 @@ function renderSearch() {
       </div>`;
     return;
   }
-  if (S.searchState === 'loading') {
-    body.innerHTML = `<div class="mt-2 flex gap-4 p-4 rounded-2xl bg-surface/70"><div class="skel w-24 h-24 !rounded-xl"></div><div class="flex-1 space-y-3 pt-2"><div class="skel h-5 w-3/4"></div><div class="skel h-4 w-1/2"></div><div class="skel h-8 w-24 !rounded-full"></div></div></div>
-      <ul class="mt-4 space-y-1">${skeletonRows(8)}</ul>`;
-    return;
-  }
-  if (S.searchState === 'error') {
+
+  const order = S.filter === 'all' ? enabledSources() : [S.filter];
+  const flat = [];
+  const idx = t => flat.push(t) - 1;
+  const states = order.map(s => S.res[s]).filter(Boolean);
+  const allDone = states.every(r => r.state !== 'loading');
+  const allFailed = states.length && states.every(r => r.state === 'error');
+  let h = '';
+
+  if (allFailed) {
+    S.flat = [];
     body.innerHTML = `<div class="mt-10 text-center max-w-sm mx-auto">
       <div class="w-14 h-14 mx-auto rounded-full bg-fill/10 grid place-items-center text-muted">${icon('search', 'w-6 h-6')}</div>
       <h3 class="mt-4 text-[19px] font-semibold">Search isn't available right now</h3>
-      <p class="mt-1 text-[14px] text-muted">${esc(S.searchError)}</p>
+      <p class="mt-1 text-[14px] text-muted">None of the music sources responded. Check your connection and try again.</p>
       <div class="flex gap-2 justify-center mt-5">
         <button data-act="retry-search" class="pill bg-accent text-white">Try Again</button>
-        <button data-act="open-settings" class="pill bg-fill/10 text-accent">Servers</button>
+        <button data-act="open-settings" class="pill bg-fill/10 text-accent">Sources</button>
       </div></div>`;
     return;
   }
-  if (!S.results.length) {
-    body.innerHTML = `<div class="mt-12 text-center"><h3 class="text-[19px] font-semibold">No Results</h3>
-      <p class="mt-1 text-[14px] text-muted">Nothing found for “${esc(q)}”. Try a different spelling.</p></div>`;
-    return;
-  }
-  const [top, ...rest] = S.results;
-  body.innerHTML = `
-    <h2 class="text-[20px] font-bold tracking-tight mt-2 mb-3">Top Result</h2>
-    <div class="relative overflow-hidden rounded-2xl bg-surface/80 ring-1 ring-line/10 p-4 flex items-center gap-4" data-ctx="results" data-i="0" data-id="${esc(top.id)}">
+
+  const top = S.filter === 'all' ? pickTop(q) : null;
+  if (top) {
+    const i = idx(top);
+    const sub = [SRC[top.src].badge || 'Song', top.artist, top.src === 'pv' ? '' : top.duration ? fmtTime(top.duration) : ''].filter(Boolean).map(esc).join(' · ');
+    h += `<h2 class="text-[20px] font-bold tracking-tight mt-2 mb-3">Top Result</h2>
+    <div class="relative overflow-hidden rounded-2xl bg-surface/80 ring-1 ring-line/10 p-4 flex items-center gap-4" data-ctx="results" data-i="${i}" data-id="${esc(top.id)}">
       <button data-act="play" class="shrink-0 press" aria-label="Play ${esc(top.title)}">${artBox(top, 'w-24 h-24 sm:w-28 sm:h-28 rounded-xl shadow-lg')}</button>
       <div class="min-w-0 flex-1">
         <div class="row-title text-[19px] sm:text-[22px] font-bold leading-tight line-clamp-2">${esc(top.title)}</div>
-        <div class="text-[14px] text-muted truncate mt-0.5">Song · ${esc(top.artist)}${top.duration ? ' · ' + fmtTime(top.duration) : ''}</div>
+        <div class="text-[14px] text-muted truncate mt-0.5">${sub}</div>
         <div class="flex items-center gap-2 mt-3">
           <button data-act="play" class="pill !h-9 !px-4 bg-accent text-white text-[14px]">${icon('play', 'w-3.5 h-3.5')}Play</button>
           <button data-act="station" class="pill !h-9 !px-3 bg-fill/10 text-accent text-[14px]" aria-label="Start station">${icon('radio', 'w-4 h-4')}<span class="hidden sm:inline">Station</span></button>
@@ -1563,29 +1984,66 @@ function renderSearch() {
           <button data-act="more" class="row-btn bg-fill/10" aria-label="More options">${icon('more')}</button>
         </div>
       </div>
-    </div>
-    ${rest.length ? `<h2 class="text-[20px] font-bold tracking-tight mt-7 mb-1">${S.filter === 'songs' ? 'Songs' : 'Videos'}</h2>
-    <ul class="grid xl:grid-cols-2 gap-x-6">${rest.map((t, i) => rowHTML(t, i + 1, 'results')).join('')}</ul>` : ''}`;
+    </div>`;
+  }
+
+  const limit = S.filter === 'all' ? 5 : 60;
+  for (const s of order) {
+    const r = S.res[s];
+    if (!r) continue;
+    const items = r.items.filter(x => x !== top);
+    if (S.filter === 'all' && r.state === 'done' && !items.length) continue;
+    const more = S.filter === 'all' && items.length > limit
+      ? `<button data-act="filter" data-val="${s}" class="text-accent text-[15px] shrink-0">See All</button>` : '';
+    h += `<section class="mt-7">
+      <div class="flex items-end justify-between gap-3 mb-1">
+        <div class="min-w-0"><h2 class="text-[20px] font-bold tracking-tight">${esc(SRC[s].section)}</h2>
+        <p class="text-[12.5px] text-muted truncate">${esc(SRC[s].sub)}</p></div>${more}
+      </div>`;
+    if (r.state === 'loading') h += `<ul>${skeletonRows(S.filter === 'all' ? 2 : 6)}</ul>`;
+    else if (r.state === 'error') {
+      h += `<div class="mt-2 rounded-xl bg-fill/10 px-4 py-3 text-[14px] flex items-center gap-3">
+        <span class="flex-1 text-muted">${esc(r.error || 'Not responding right now.')}</span>
+        ${s === 'yt' ? `<button data-act="open-settings" class="text-accent font-semibold shrink-0">Set Up</button>`
+                     : `<button data-act="retry-search" class="text-accent font-semibold shrink-0">Retry</button>`}
+      </div>`;
+    }
+    else if (!items.length) h += `<p class="mt-2 text-[14px] text-muted">No matches here.</p>`;
+    else h += `<ul class="grid grid-cols-[minmax(0,1fr)] xl:grid-cols-2 gap-x-6">${items.slice(0, limit).map(t => rowHTML(t, idx(t), 'results')).join('')}</ul>`;
+    h += `</section>`;
+  }
+
+  if (allDone && !flat.length) {
+    h = `<div class="mt-12 text-center"><h3 class="text-[19px] font-semibold">No Results</h3>
+      <p class="mt-1 text-[14px] text-muted">Nothing found for “${esc(q)}”. Try a different spelling or another source.</p></div>` + h;
+  }
+  S.flat = flat;
+  body.innerHTML = h;
   markPlaying();
 }
 
 async function doSearch(q, { record = false } = {}) {
   q = q.trim();
   S.query = q;
-  if (!q) { S.results = []; S.searchState = 'idle'; renderSearch(); return; }
+  if (!q) { S.res = {}; renderSearch(); return; }
   const seq = ++searchSeq;
-  S.searchState = 'loading'; renderSearch();
-  try {
-    const items = await searchTracks(q, S.filter);
-    if (seq !== searchSeq) return;
-    S.results = items.slice(0, 40); S.searchState = 'done'; S.lastQuery = q;
-    if (record) addRecentQuery(q);
-  } catch (e) {
-    if (seq !== searchSeq) return;
-    S.searchState = 'error'; S.searchError = e.message || 'Something went wrong.';
-    toast(S.searchError, 'error');
-  }
+  const srcs = enabledSources();
+  S.res = {};
+  for (const s of srcs) S.res[s] = { state: 'loading', items: [] };
+  S.lastQuery = q;
+  if (record) addRecentQuery(q);
   renderSearch();
+  await Promise.all(srcs.map(async s => {
+    try {
+      const items = await searchSource(s, q);
+      if (seq !== searchSeq) return;
+      S.res[s] = { state: 'done', items: items.slice(0, 60) };
+    } catch (e) {
+      if (seq !== searchSeq) return;
+      S.res[s] = { state: 'error', items: [], error: e instanceof ApiError ? e.message : `${SRC[s].section} isn't responding right now.` };
+    }
+    scheduleRenderSearch();
+  }));
 }
 function searchFor(q) {
   closeAll();
@@ -1594,7 +2052,7 @@ function searchFor(q) {
   doSearch(q, { record: true });
 }
 function addRecentQuery(q) {
-  q = q.trim(); if (q.length < 2) return;
+  q = String(q || '').trim(); if (q.length < 2) return;
   S.recentQ = [q, ...S.recentQ.filter(x => x.toLowerCase() !== q.toLowerCase())].slice(0, 8);
   store.set('recentQ', S.recentQ);
 }
@@ -1611,35 +2069,45 @@ function setNpArt(t) {
     bg.classList.remove('on'); return;
   }
   box.style.background = grad(t.artist + t.title);
-  const r = resolvedFor(t), id = r && r.id;
-  if (!id) { box.dataset.art = ''; box.innerHTML = coverLabel(t, true); bg.classList.remove('on'); return; }
-  if (box.dataset.art === id) return;
-  box.dataset.art = id;
-  box.innerHTML = `<img class="hq" src="${thumb(id)}" alt="Artwork for ${esc(t.title)}">`;
-  const hi = new Image();
-  hi.onload = () => { if (req === artReq && hi.naturalWidth > 200) box.innerHTML = `<img src="${hi.src}" alt="Artwork for ${esc(t.title)}">`; };
-  hi.src = thumbMax(id);
-  const src = thumb(id);
-  if (bg.getAttribute('src') === src) { bg.classList.add('on'); return; }
+  const a = artInfo(t, true);
+  if (!a) { box.dataset.art = ''; box.innerHTML = coverLabel(t, true); bg.classList.remove('on'); return; }
+  if (box.dataset.art === a.url) return;
+  box.dataset.art = a.url;
+  box.innerHTML = `<img class="${a.hq ? 'hq' : ''}" src="${esc(a.url)}" alt="Artwork for ${esc(t.title)}" onerror="this.remove()">`;
+  if (a.yt) {   // try the sharper 16:9 YouTube thumbnail
+    const hi = new Image();
+    hi.onload = () => { if (req === artReq && hi.naturalWidth > 200) box.innerHTML = `<img src="${hi.src}" alt="Artwork for ${esc(t.title)}">`; };
+    hi.src = thumbMax(a.yt);
+  }
+  const small = (artInfo(t) || a).url;
+  if (bg.getAttribute('src') === small) { bg.classList.add('on'); return; }
   bg.classList.remove('on');
   bg.onload = () => { if (req === artReq) bg.classList.add('on'); };
-  bg.src = src;
+  bg.src = small;
 }
 
 const SOURCE_LABEL = { radio: 'Playing from Autoplay', queue: 'Playing from Up Next', collection: '90s Alternative Essentials', station: 'Station', history: 'Now Playing', resume: 'Now Playing', user: 'Now Playing' };
+function npSourcePill(t) {
+  if (!t || !t.src) return '';
+  const txt = t.src === 'pv' ? '30-second preview'
+    : t.src === 'ia' ? `Internet Archive${t.album ? ' · ' + t.album : ''}`
+    : t.src === 'au' ? 'Audius' : 'YouTube';
+  return `<span class="np-pill">${esc(txt)}</span>`;
+}
 
 function renderNowPlaying() {
   const t = S.current;
   $('#npTitle').textContent = t ? t.title : 'Not Playing';
   $('#npArtist').textContent = t ? t.artist : 'Pick something to play';
+  $('#npSrc').innerHTML = npSourcePill(t);
   $('#npLabel').textContent = t ? (SOURCE_LABEL[S.source] || 'Now Playing') : 'FS Music';
   $('#miniTitle').textContent = t ? t.title : 'Not Playing';
-  $('#miniArtist').textContent = t ? t.artist : 'Tap a song to start';
+  $('#miniArtist').innerHTML = t ? srcBadge(t) + esc(t.artist) : 'Tap a song to start';
   const mini = $('#miniArt');
   if (t) {
-    const r = resolvedFor(t);
+    const a = artInfo(t);
     mini.style.background = grad(t.artist + t.title);
-    mini.innerHTML = r && r.id ? `<img src="${thumb(r.id)}" class="hq" alt="">` : `<div class="absolute inset-0 grid place-items-center text-white/85">${icon('note', 'w-1/2 h-1/2')}</div>`;
+    mini.innerHTML = a ? imgTag(a) : `<div class="absolute inset-0 grid place-items-center text-white/85">${icon('note', 'w-1/2 h-1/2')}</div>`;
   } else {
     mini.style.background = ''; mini.innerHTML = `<div class="absolute inset-0 grid place-items-center text-muted">${icon('note', 'w-1/2 h-1/2')}</div>`;
   }
@@ -1678,7 +2146,7 @@ function onTimeUpdate() {
   const d = duration(), a = S.audio;
   if (!S.prefetched && d && d - a.currentTime < 30 && a.currentTime > 5) { S.prefetched = true; prefetchNext(); }
   const now = Date.now();
-  if (now - lastPosSave > 5000 && S.current && S.current.id) {
+  if (now - lastPosSave > 5000 && S.current && S.current.src) {
     lastPosSave = now;
     store.set('pos', { id: S.current.id, t: a.currentTime });
     if ('mediaSession' in navigator && navigator.mediaSession.setPositionState && isFinite(a.duration) && a.duration > 0) {
@@ -1713,14 +2181,12 @@ function updateMediaSession() {
   if (!('mediaSession' in navigator)) return;
   const t = S.current;
   if (!t) { navigator.mediaSession.metadata = null; return; }
-  const r = resolvedFor(t);
+  const a = artInfo(t), al = artInfo(t, true);
   try {
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: t.title, artist: t.artist, album: SOURCE_LABEL[S.source] === 'Now Playing' ? 'FS Music' : SOURCE_LABEL[S.source],
-      artwork: r && r.id ? [
-        { src: thumb(r.id), sizes: '480x360', type: 'image/jpeg' },
-        { src: thumbMax(r.id), sizes: '1280x720', type: 'image/jpeg' }
-      ] : []
+      title: t.title, artist: t.artist,
+      album: t.album || (SOURCE_LABEL[S.source] === 'Now Playing' ? 'FS Music' : SOURCE_LABEL[S.source]),
+      artwork: a ? [{ src: a.url, sizes: '400x400' }, ...(al && al.url !== a.url ? [{ src: al.url, sizes: '1000x1000' }] : [])] : []
     });
   } catch { }
 }
@@ -1759,7 +2225,7 @@ function renderQueue() {
     <div class="px-1 pt-6 pb-10">
       <div class="flex items-center justify-between gap-4 px-1.5">
         <div class="min-w-0"><div class="text-[17px] font-semibold flex items-center gap-1.5"><span class="text-accent">${icon('infinity', 'w-5 h-5')}</span>Autoplay</div>
-          <div class="text-[12.5px] text-muted">${S.set.radio ? 'Similar music keeps playing after Up Next' : 'Off — playback stops when Up Next ends'}</div></div>
+          <div class="text-[12.5px] text-muted">${S.set.radio ? (t && t.src === 'ia' ? 'Continues the concert, then more from this artist' : 'Similar music keeps playing after Up Next') : 'Off — playback stops when Up Next ends'}</div></div>
         <button class="switch" role="switch" aria-checked="${S.set.radio}" data-act="toggle-radio" aria-label="Autoplay"></button>
       </div>
       ${!S.set.radio ? '' : S.radioLoading && !S.radio.length ? `<ul class="mt-2">${skeletonRows(4)}</ul>`
@@ -1772,14 +2238,17 @@ function renderQueue() {
 /* =====================================================================
    Settings panel
    ===================================================================== */
-const QUALITY_HINT = { high: 'Highest available bitrate (up to ~160 kbps Opus / 128 kbps AAC)', standard: 'Balanced — around 128 kbps', saver: 'Lowest bitrate — great on cellular' };
+const QUALITY_HINT = { high: 'Highest available YouTube bitrate (up to ~160 kbps)', standard: 'Balanced — around 128 kbps', saver: 'Lowest bitrate — great on cellular' };
 
 function refreshSettingsUI() {
   $$('.seg[data-setting]').forEach(seg => {
     const v = S.set[seg.dataset.setting];
     $$('button', seg).forEach(b => { const on = b.dataset.val === v; b.classList.toggle('active', on); b.setAttribute('aria-pressed', on); });
   });
-  $$('[data-toggle]').forEach(sw => sw.setAttribute('aria-checked', String(!!S.set[sw.dataset.toggle])));
+  $$('[data-toggle]').forEach(sw => {
+    const k = sw.dataset.toggle;
+    sw.setAttribute('aria-checked', String(!!(k.startsWith('src:') ? S.set.sources[k.slice(4)] : S.set[k])));
+  });
   $('#qualHint').textContent = QUALITY_HINT[S.set.quality];
   $('#npRadio').classList.toggle('on', S.set.radio);
   $('#npRadio').setAttribute('aria-pressed', S.set.radio);
@@ -1815,6 +2284,15 @@ function setEq(on) {
   refreshSettingsUI();
   if (on && S.set.eqOn) toast('Equalizer on', 'ok');
 }
+function setSourceEnabled(src, on) {
+  if (!on && enabledSources().length === 1 && S.set.sources[src]) return toast('Keep at least one music source on', 'error');
+  S.set.sources[src] = on;
+  if (src === 'yt' && on) S.ytDownUntil = 0;
+  saveSettings(); refreshSettingsUI(); renderChips();
+  searchCache.clear();
+  for (const k of Object.keys(memResolved)) delete memResolved[k];
+  if (S.query) doSearch(S.query);
+}
 function renderInstances() {
   const sel = $('#instSelect');
   if (!sel) return;
@@ -1842,13 +2320,14 @@ async function testInstances(btn) {
   btn.disabled = true; btn.textContent = 'Testing…';
   await Promise.all(list.map(async inst => {
     const t0 = performance.now();
-    try { await adapterFor(inst).search(inst.url, 'smashing pumpkins', { filter: 'videos', timeout: 6000 }); markOk(inst, performance.now() - t0); }
+    try { await adapterFor(inst).search(inst.url, 'smashing pumpkins', { timeout: 6000 }); markOk(inst, performance.now() - t0); }
     catch (e) { markFail(inst, e); }
     renderInstances();
   }));
   btn.disabled = false; btn.textContent = 'Test Servers';
   const ok = list.filter(i => health[i.url] && health[i.url].ok).length;
-  toast(`${ok} of ${list.length} servers responding`, ok ? 'ok' : 'error');
+  if (ok) { S.ytDownUntil = 0; searchCache.clear(); }
+  toast(ok ? `${ok} of ${list.length} YouTube servers responding` : 'No public YouTube server is responding — other sources still work', ok ? 'ok' : 'error');
 }
 
 /* =====================================================================
@@ -1877,7 +2356,7 @@ function closeAll() { S.open.clear(); syncOverlays(); }
 
 function openActions(t, ctx, i) {
   S.sheet = { t, ctx, i };
-  $('#sheetHead').innerHTML = `${artBox(t, 'w-12 h-12 rounded-[7px] shrink-0')}<div class="min-w-0"><div class="font-semibold truncate">${esc(t.title)}</div><div class="text-[14px] text-muted truncate">${esc(t.artist)}</div></div>`;
+  $('#sheetHead').innerHTML = `${artBox(t, 'w-12 h-12 rounded-[7px] shrink-0')}<div class="min-w-0"><div class="font-semibold truncate">${esc(t.title)}</div><div class="text-[14px] text-muted truncate">${srcBadge(t)}${esc(t.artist)}</div></div>`;
   const acts = [];
   if (ctx !== 'current') acts.push(['now', 'play', 'Play Now'], ['next', 'playNext', 'Play Next'], ['later', 'addLater', 'Add to Up Next']);
   acts.push(['station', 'radio', 'Start Station'], ['artist', 'mic', `Search “${t.artist}”`]);
@@ -1890,6 +2369,7 @@ function runSheet(k) {
   closeOverlay('sheet');
   if (!t) return;
   const fromList = ctx === 'queue' ? S.queue : ctx === 'radio' ? S.radio : null;
+  if (ctx === 'results') addRecentQuery(S.lastQuery);
   if (k === 'now') return fromList ? jumpTo(ctx, i) : playNow(t);
   if (k === 'next' || k === 'later') {
     if (fromList) fromList.splice(i, 1);
@@ -1912,7 +2392,7 @@ function switchView(v) {
    Events
    ===================================================================== */
 const LISTS = {
-  results: () => S.results, ess: () => ESSENTIALS, recent: () => S.recent,
+  results: () => S.flat, ess: () => ESSENTIALS, recent: () => S.recent,
   queue: () => S.queue, radio: () => S.radio, current: () => (S.current ? [S.current] : [])
 };
 
@@ -1957,10 +2437,13 @@ function bindEvents() {
       case 'hero-shuffle': return playCollection(ESSENTIALS, true);
       case 'filter':
         S.filter = el.dataset.val;
-        $$('[data-act="filter"]').forEach(c => { c.classList.toggle('active', c === el); c.setAttribute('aria-selected', c === el); });
-        if (S.query) doSearch(S.query);
+        renderChips(); renderSearch();
+        $('#searchBody').scrollIntoView({ block: 'start' });
+        window.scrollTo({ top: 0 });
         return;
-      case 'retry-search': return doSearch(S.query);
+      case 'retry-search':
+        searchCache.clear(); S.ytDownUntil = 0;
+        return doSearch(S.query);
       case 'clear-recents': S.recentQ = []; store.set('recentQ', []); renderSearch(); toast('Recent searches cleared', 'ok'); return;
       case 'clear-history': S.recent = []; store.set('recent', []); renderRecent(); toast('Recently played cleared', 'ok'); return;
       case 'clear-queue': S.queue = []; renderQueue(); saveSession(); return;
@@ -1974,6 +2457,7 @@ function bindEvents() {
         el.disabled = true; el.textContent = 'Searching…';
         discoverInstances().then(n => {
           el.disabled = false; el.textContent = 'Find More Servers';
+          if (n) S.ytDownUntil = 0;
           toast(n ? `Found ${n} public servers` : "Couldn't load the server directory", n ? 'ok' : 'error');
         });
         return;
@@ -2030,7 +2514,7 @@ function bindEvents() {
     const v = q.value.trim();
     if (!v) { doSearch(''); return; }
     if (v.length < 2) return;
-    searchTimer = setTimeout(() => doSearch(v), 450);
+    searchTimer = setTimeout(() => doSearch(v), 500);
   });
   $('#searchForm').addEventListener('submit', e => {
     e.preventDefault(); clearTimeout(searchTimer);
@@ -2046,17 +2530,19 @@ function bindEvents() {
     const key = seg.dataset.setting;
     if (S.set[key] === b.dataset.val) return;
     S.set[key] = b.dataset.val; saveSettings(); refreshSettingsUI();
-    if (key === 'provider') { renderInstances(); streamCache.clear(); searchCache.clear(); }
-    if (key === 'quality' || key === 'format') { streamCache.clear(); toast('Applies from the next song', 'info'); }
+    if (key === 'provider') { renderInstances(); streamCache.clear(); searchCache.clear(); S.ytDownUntil = 0; }
+    if (key === 'quality' || key === 'format') { streamCache.clear(); toast('Applies from the next YouTube song', 'info'); }
+    if (key === 'fallback') for (const k of Object.keys(memResolved)) delete memResolved[k];
   }));
   $$('[data-toggle]').forEach(sw => sw.addEventListener('click', () => {
     const k = sw.dataset.toggle;
     if (k === 'radio') setRadio(!S.set.radio);
     if (k === 'eqOn') setEq(!S.set.eqOn);
+    if (k.startsWith('src:')) setSourceEnabled(k.slice(4), !S.set.sources[k.slice(4)]);
   }));
   $('#instSelect').addEventListener('change', e => {
     S.set.instance = e.target.value; saveSettings();
-    streamCache.clear(); searchCache.clear();
+    streamCache.clear(); searchCache.clear(); S.ytDownUntil = 0;
     toast(e.target.value === 'auto' ? 'Using the fastest available server' : `Using ${host(e.target.value)}`, 'ok');
   });
   $('#customForm').addEventListener('submit', e => {
@@ -2065,9 +2551,10 @@ function bindEvents() {
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
     try { new URL(url); } catch { return toast('That doesn’t look like a valid URL', 'error'); }
     S.set.custom = [{ type: $('#customType').value, url, custom: true }, ...S.set.custom.filter(c => c.url !== url)];
-    S.set.instance = url; saveSettings();
+    S.set.instance = url; S.set.sources.yt = true; saveSettings();
     $('#customUrl').value = '';
-    renderInstances(); streamCache.clear(); searchCache.clear();
+    S.ytDownUntil = 0; delete health[url];
+    renderInstances(); refreshSettingsUI(); renderChips(); streamCache.clear(); searchCache.clear();
     toast(`Added ${host(url)}`, 'ok');
   });
   $('#eqPresets').addEventListener('click', e => {
@@ -2127,14 +2614,15 @@ function bindEvents() {
    ===================================================================== */
 function restoreSession() {
   const s = store.get('session', null);
-  if (!s || !s.current) return;
-  S.current = s.current; S.source = s.source || 'user';
-  S.queue = Array.isArray(s.queue) ? s.queue : [];
-  S.radio = Array.isArray(s.radio) ? s.radio : [];
-  S.history = Array.isArray(s.history) ? s.history : [];
+  const cur = s && normalizeTrack(s.current);
+  if (!cur) return;
+  S.current = cur; S.source = s.source || 'user';
+  S.queue = normList(s.queue);
+  S.radio = normList(s.radio);
+  S.history = normList(s.history);
   S.needsLoad = true;
   const pos = store.get('pos', null);
-  S.resumeAt = pos && pos.id === S.current.id ? Math.max(0, pos.t - 2) : 0;
+  S.resumeAt = pos && (pos.id === S.current.id || 'yt:' + pos.id === S.current.id) ? Math.max(0, pos.t - 2) : 0;
 }
 
 function init() {
@@ -2146,6 +2634,7 @@ function init() {
   bindEvents();
   setupMediaSession();
   renderHome();
+  renderChips();
   renderSearch();
   renderNowPlaying();
   renderQueue();
@@ -2154,6 +2643,7 @@ function init() {
   setPlayingUI(false);
   updateProgress(true);
   switchView('home');
+  setTimeout(prefetchArt, 800);
 }
 
 init();
