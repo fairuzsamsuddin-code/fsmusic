@@ -114,7 +114,13 @@
     </ol>
     <div class="note"><b>Why 1 CPU and 4 GB?</b> Oracle may take back free servers that look idle: all of CPU, network and memory use under 20% for a week. On 4 GB, the music server uses enough memory to stay above that line, and it's plenty fast.</div>
     <div class="note warn"><b>Public IPv4 switch missing or greyed out?</b> New accounts sometimes need the network made first. In a new tab: <span class="ui">☰</span> → <span class="ui">Networking</span> → <span class="ui">Virtual cloud networks</span> → <span class="ui">Actions</span> / <span class="ui">Start VCN Wizard</span> → <b>Create VCN with Internet Connectivity</b> → name it <code>fsmusic-vcn</code> → <span class="ui">Next</span> → <span class="ui">Create</span>. Back in the instance wizard, refresh, then pick <i>Select existing virtual cloud network</i> → <code>fsmusic-vcn</code> and its <b>public</b> subnet. The switch is then available.<br><br><b>Already created the server without a public IP?</b> Open the instance → <span class="ui">Networking</span> / <i>Attached VNICs</i> → your VNIC → <span class="ui">IP administration</span> → <span class="ui">⋯</span> → <span class="ui">Edit</span> → <b>Ephemeral public IP</b> → <span class="ui">Update</span>.</div>
-    <div class="note warn"><b>"Out of capacity" error?</b> Free ARM servers are popular. Try another <i>Availability domain</i> (AD-2 or AD-3) on the same page, or try again later. Early morning often works.</div>
+    <div class="note warn"><b>"Out of capacity" error?</b> That's common: Oracle's free ARM servers are popular. Your form stays filled in, so try these in order:
+      <ol>
+        <li><b>Another availability domain.</b> Scroll up to <i>Placement</i> → <i>Availability domain</i>. If you see AD-2 or AD-3, pick one and tap <span class="ui">Create</span> again. Many regions only have AD-1, so skip this if that's all you see.</li>
+        <li><b>Try again later.</b> Capacity frees up during the day. Early morning or late night often works. Re-tapping <span class="ui">Create</span> every so often is fine.</li>
+        <li><b>Use the always-available free AMD server instead.</b> Go back to <i>Image and shape</i> → <span class="ui">Change shape</span> → <span class="ui">Specialty and previous generation</span> → <b>VM.Standard.E2.1.Micro</b> (also <i>Always Free-eligible</i>). Keep the Ubuntu 24.04 image. It's smaller (1 GB memory), but the installer adds swap space automatically, and it's enough for one person's music. The first start just takes a few extra minutes.</li>
+      </ol>
+    </div>
   </section>
 
   <section>

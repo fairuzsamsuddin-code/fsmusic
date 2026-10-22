@@ -21,6 +21,19 @@ die()  { printf '\n\033[1;31mxx  %s\033[0m\n' "$*"; exit 1; }
 if [ "$(id -u)" -eq 0 ]; then SUDO=""; else SUDO="sudo"; fi
 command -v apt-get >/dev/null || die "This installer needs Ubuntu or Debian."
 
+# ---------------------------------------------------------------- memory
+# Oracle's always-available free AMD server (VM.Standard.E2.1.Micro) has only 1 GB of RAM.
+# Swap space lets Invidious, Companion and the database fit comfortably.
+mem_mb=$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)
+if [ "$mem_mb" -lt 3000 ] && [ -z "$(swapon --noheadings 2>/dev/null)" ]; then
+  say "Small server detected (${mem_mb} MB memory) — adding 2 GB of swap space…"
+  $SUDO fallocate -l 2G /swapfile 2>/dev/null || $SUDO dd if=/dev/zero of=/swapfile bs=1M count=2048 status=none
+  $SUDO chmod 600 /swapfile
+  $SUDO mkswap /swapfile >/dev/null
+  $SUDO swapon /swapfile
+  grep -q '^/swapfile ' /etc/fstab || echo '/swapfile none swap sw 0 0' | $SUDO tee -a /etc/fstab >/dev/null
+fi
+
 # ---------------------------------------------------------------- packages
 say "Installing Docker (takes 1–3 minutes on a new server)…"
 APT="$SUDO apt-get -y -qq -o DPkg::Lock::Timeout=600"
@@ -177,7 +190,7 @@ $DC up -d
 
 say "Waiting for Invidious to finish starting…"
 ok=""
-for _ in $(seq 1 60); do
+for _ in $(seq 1 120); do   # up to 10 minutes; the small AMD server starts slowly the first time
   if curl -fsS -o /dev/null http://127.0.0.1:3000/api/v1/stats 2>/dev/null; then ok=1; break; fi
   sleep 5
 done
