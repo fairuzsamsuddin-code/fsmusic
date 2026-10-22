@@ -101,12 +101,19 @@
       <li><b>Name:</b> <code>fsmusic</code></li>
       <li><b>Image:</b> <span class="ui">Change image</span> → <span class="ui">Ubuntu</span> → <b>Canonical Ubuntu 24.04</b> → <span class="ui">Select</span>.</li>
       <li><b>Shape:</b> <span class="ui">Change shape</span> → <span class="ui">Ampere</span> → <b>VM.Standard.A1.Flex</b>. Set <b>OCPUs to 1</b> and <b>Memory to 4 GB</b>, then <span class="ui">Select</span>. It should say <i>Always Free-eligible</i>.</li>
-      <li><b>Networking:</b> leave the defaults. Make sure <i>Assign a public IPv4 address</i> is on.</li>
-      <li><b>Add SSH keys:</b> choose <span class="ui">Paste public keys</span> and paste the key from step 1.</li>
-      <li>Leave everything else as it is and tap <span class="ui">Create</span>.</li>
+      <li>Tap <span class="ui">Next</span> to reach the <b>Networking</b> step (Oracle's form is a step-by-step wizard):
+        <ul>
+          <li><b>Primary network:</b> <span class="ui">Create new virtual cloud network</span>, with the suggested name.</li>
+          <li><b>Subnet:</b> <span class="ui">Create new public subnet</span>.</li>
+          <li><b>Primary VNIC IP addresses:</b> turn on <i>Automatically assign public IPv4 address</i>.</li>
+          <li><b>Add SSH keys</b>, further down the same step: choose <span class="ui">Paste public keys</span> and paste the key from step 1.</li>
+        </ul>
+      </li>
+      <li>Tap <span class="ui">Next</span> through Storage (leave the defaults), then <span class="ui">Create</span> on the Review step.</li>
       <li>Wait until the status turns <b>Running</b> (1–2 minutes). Then copy the <b>Public IP address</b> from the instance page.</li>
     </ol>
     <div class="note"><b>Why 1 CPU and 4 GB?</b> Oracle may take back free servers that look idle: all of CPU, network and memory use under 20% for a week. On 4 GB, the music server uses enough memory to stay above that line, and it's plenty fast.</div>
+    <div class="note warn"><b>Public IPv4 switch missing or greyed out?</b> New accounts sometimes need the network made first. In a new tab: <span class="ui">☰</span> → <span class="ui">Networking</span> → <span class="ui">Virtual cloud networks</span> → <span class="ui">Actions</span> / <span class="ui">Start VCN Wizard</span> → <b>Create VCN with Internet Connectivity</b> → name it <code>fsmusic-vcn</code> → <span class="ui">Next</span> → <span class="ui">Create</span>. Back in the instance wizard, refresh, then pick <i>Select existing virtual cloud network</i> → <code>fsmusic-vcn</code> and its <b>public</b> subnet. The switch is then available.<br><br><b>Already created the server without a public IP?</b> Open the instance → <span class="ui">Networking</span> / <i>Attached VNICs</i> → your VNIC → <span class="ui">IP administration</span> → <span class="ui">⋯</span> → <span class="ui">Edit</span> → <b>Ephemeral public IP</b> → <span class="ui">Update</span>.</div>
     <div class="note warn"><b>"Out of capacity" error?</b> Free ARM servers are popular. Try another <i>Availability domain</i> (AD-2 or AD-3) on the same page, or try again later. Early morning often works.</div>
   </section>
 
