@@ -120,7 +120,33 @@
         <li><b>Try again later.</b> Capacity frees up during the day. Early morning or late night often works. Re-tapping <span class="ui">Create</span> every so often is fine.</li>
         <li><b>Use the always-available free AMD server instead.</b> Go back to <i>Image and shape</i> → <span class="ui">Change shape</span> → <span class="ui">Specialty and previous generation</span> → <b>VM.Standard.E2.1.Micro</b> (also <i>Always Free-eligible</i>). Keep the Ubuntu 24.04 image. It's smaller (1 GB memory), but the installer adds swap space automatically, and it's enough for one person's music. The first start just takes a few extra minutes.</li>
       </ol>
+          <p style="margin:10px 0 0"><b>Still out of capacity?</b> See <a href="#capacity">"Out of capacity" for every shape</a> below.</p>
     </div>
+  </section>
+
+  <section id="capacity">
+    <span class="pill">If step 3 keeps failing</span>
+    <h2 style="margin-top:6px">"Out of capacity" for every shape</h2>
+    <p>Your region is full right now, which is common on the free tier. There are two ways through:</p>
+    <h3>Option A: let a script keep trying for you (free)</h3>
+    <ol>
+      <li>In the Oracle console, tap the <span class="ui">&gt;_</span> <b>Cloud Shell</b> icon at the top of the page. A terminal opens at the bottom; give it a minute.</li>
+      <li>Paste this and press return:</li>
+    </ol>
+    <div class="cmd"><code>bash &lt;(curl -fsSL https://fairuzsamsuddin-code.github.io/fsmusic/server/oracle-retry.sh)</code><button type="button">Copy</button></div>
+    <ol start="3">
+      <li>When asked, paste your <b>public key</b> from Termius (step 1).</li>
+      <li>It tries the free ARM and AMD servers once a minute and stops as soon as one is created, then shows its <b>IP address</b>. That can take minutes or hours. Keep the tab open and your phone awake: plug it in and set <span class="ui">Settings</span> → <span class="ui">Display &amp; Brightness</span> → <span class="ui">Auto-Lock</span> → <span class="ui">Never</span>.</li>
+      <li>If Cloud Shell disconnects, open it again and run the same line. It continues where it left off. Only Always Free server types are used.</li>
+    </ol>
+    <p class="muted">The script also creates the network if needed, so it works even if the wizard never got that far. <a href="oracle-retry.sh" target="_blank">Read the script</a>.</p>
+    <h3>Option B: upgrade the account to "Pay As You Go"</h3>
+    <p>Many people report that the free servers become available right away after upgrading. The free resources stay free, and you're only billed if you create something beyond the Always Free limits. This setup doesn't. It also stops Oracle from reclaiming idle free servers.</p>
+    <ol>
+      <li><span class="ui">☰</span> → <span class="ui">Billing &amp; Cost Management</span> → <span class="ui">Upgrade and Manage Payment</span> → <b>Upgrade to Pay As You Go</b>. Oracle may place a temporary verification hold on your card, which is then released.</li>
+      <li>Safety net: <span class="ui">Billing &amp; Cost Management</span> → <span class="ui">Budgets</span> → <span class="ui">Create Budget</span>. Set an amount of <b>1</b> and an email alert at 100%, so you'd hear about any charge immediately.</li>
+      <li>Wait for the upgrade email, then repeat step 3. The ARM server (1 CPU, 4 GB) is the one to pick.</li>
+    </ol>
   </section>
 
   <section>
